@@ -1,0 +1,17 @@
+[package]
+name = "dotnes"
+version = "0.1.0"
+authors = ["7sDream <i@7sdre.am>"]
+edition = "2018"
+description = "Yet another .net file parser"
+repository = "https://git.7sdre.am/7sDream/dotnes"
+readme = "README.md"
+license-file = "LICENSE"
+publish = false
+
+[lib]
+name = "dotnes"
+path = "src/lib.rs"
+
+[dependencies]
+nom = "5.0.1"

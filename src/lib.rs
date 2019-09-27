@@ -148,6 +148,7 @@ pub struct NesFileHeader {
     prg_nv_ram_size: u32,
     chr_ram_size: u32,
     chr_nv_ram_size: u32,
+    miscellaneous_rom_count: u8,
     mapper: u16,
     sub_mapper: u8,
     is_four_screen: bool,
@@ -232,6 +233,14 @@ fn parse_flag13(input: &[u8]) -> NomResult<&[u8], (u8, u8)> {
     ))(input)
 }
 
+fn parse_flag14(input: &[u8]) -> NomResult<&[u8], u8> {
+    let (input, (_unused, timing)): (_, (u8, _ )) = bits_tuple((
+        NomBits::take(6u8),
+        NomBits::take(2u8),
+    ))(input)?;
+    Ok((input, timing))
+}
+
 fn parse_header(input: &[u8]) -> NomResult<&[u8], NesFileHeader> {
     let (input, (_, prg_rom_size_lo, chr_rom_size_lo)) = NomSeq::tuple((NomBytes::tag("NES\x1A"), NomNum::le_u8, NomNum::le_u8))(input)?;
     let mut prg_rom_size = prg_rom_size_lo as u16;
@@ -257,6 +266,7 @@ fn parse_header(input: &[u8]) -> NomResult<&[u8], NesFileHeader> {
     let mut chr_ram_size: u32 = 0;
     let mut chr_nv_ram_size: u32 = 0;
     let mut timing = Timing::NTSC;
+    let mut miscellaneous_rom_count = 0;
     if is_nes2 {
         let (input, (sub_mapper_actual, mapper_hi)) = parse_flag8(input)?;
         sub_mapper = sub_mapper_actual;
@@ -292,6 +302,9 @@ fn parse_header(input: &[u8]) -> NomResult<&[u8], NesFileHeader> {
         } else if let ConsoleType::Extend(ref mut extend) = console {
             *extend = ExtendedConsoleType::try_from(b).unwrap();
         }
+
+        let (input, miscellaneous_rom_count_actual) = parse_flag14(input)?;
+        miscellaneous_rom_count = miscellaneous_rom_count_actual;
     } else {
 
     }
@@ -302,6 +315,7 @@ fn parse_header(input: &[u8]) -> NomResult<&[u8], NesFileHeader> {
         prg_nv_ram_size,
         chr_ram_size,
         chr_nv_ram_size,
+        miscellaneous_rom_count,
         mapper: mapper_lo as u16 | ((mapper_mid as u16) << 4),
         sub_mapper,
         is_four_screen: f == 1,
@@ -333,7 +347,7 @@ mod test {
 
     #[test]
     fn test_parse_success() {
-        let mut data = BufReader::new("NES\x1A\x12\x34\x5C\x69\x77\x77\x07\x70\x01\x36".as_bytes());
+        let mut data = BufReader::new("NES\x1A\x12\x34\x5C\x69\x77\x77\x07\x70\x01\x36\x03".as_bytes());
         let result = parse(&mut data).unwrap();
         assert_eq!(result.header.prg_rom_size, 0x712);
         assert_eq!(result.header.chr_rom_size, 0x734);
@@ -341,6 +355,7 @@ mod test {
         assert_eq!(result.header.prg_nv_ram_size, 8192);
         assert_eq!(result.header.chr_ram_size, 8192);
         assert_eq!(result.header.chr_nv_ram_size, 0);
+        assert_eq!(result.header.miscellaneous_rom_count, 3);
         assert_eq!(result.header.mapper, 0x765);
         assert_eq!(result.header.sub_mapper, 0x7);
         assert!(result.header.is_four_screen);

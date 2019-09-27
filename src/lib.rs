@@ -112,7 +112,7 @@ impl Default for VsInfo {
 }
 
 #[repr(u8)]
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, TryFromPrimitive)]
 pub enum ExtendedConsoleType {
     Regular = 0x0,
     Vs = 0x1,
@@ -125,7 +125,11 @@ pub enum ExtendedConsoleType {
     VT09 = 0x8,
     VT32 = 0x9,
     VT369 = 0xA,
-    Reversed = 0xB,
+    ReversedB = 0xB,
+    ReversedC = 0xC,
+    ReversedD = 0xD,
+    ReversedE = 0xE,
+    ReversedF = 0xF,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -221,6 +225,13 @@ fn parse_flag12(input: &[u8]) -> NomResult<&[u8], u8> {
     Ok((input, timing))
 }
 
+fn parse_flag13(input: &[u8]) -> NomResult<&[u8], (u8, u8)> {
+    bits_tuple((
+        NomBits::take(4u8),
+        NomBits::take(4u8),
+    ))(input)
+}
+
 fn parse_header(input: &[u8]) -> NomResult<&[u8], NesFileHeader> {
     let (input, (_, prg_rom_size_lo, chr_rom_size_lo)) = NomSeq::tuple((NomBytes::tag("NES\x1A"), NomNum::le_u8, NomNum::le_u8))(input)?;
     let mut prg_rom_size = prg_rom_size_lo as u16;
@@ -228,12 +239,12 @@ fn parse_header(input: &[u8]) -> NomResult<&[u8], NesFileHeader> {
     let (input, (mapper_lo, f, t, b, m)) = parse_flag6(input)?;
     let (input, (mut mapper_mid, nes2, console_type)) = parse_flag7(input)?;
     let is_nes2 = nes2 == 0b10;
-    let console = match console_type {
+    let mut console = match console_type {
         0 => ConsoleType::Nes,
         1 => ConsoleType::Vs(VsInfo::default()),
         2 => ConsoleType::Pc10,
         3 => if is_nes2 {
-            ConsoleType::Extend(ExtendedConsoleType::Reversed)
+            ConsoleType::Extend(ExtendedConsoleType::Regular)
         } else {
             // FIXME: Can iNES 1.0 format's console_type bits be 0b11?
             ConsoleType::Vs(VsInfo::default())
@@ -273,6 +284,14 @@ fn parse_header(input: &[u8]) -> NomResult<&[u8], NesFileHeader> {
 
         let (input, timing_actual) = parse_flag12(input)?;
         timing = Timing::try_from(timing_actual).unwrap();
+
+        let (input, (a, b)) = parse_flag13(input)?;
+        if let ConsoleType::Vs(ref mut info) = console {
+            info.hardware_type = VsHardwareType::try_from(a).unwrap();
+            info.ppu_type = VsPPUType::try_from(b).unwrap();
+        } else if let ConsoleType::Extend(ref mut extend) = console {
+            *extend = ExtendedConsoleType::try_from(b).unwrap();
+        }
     } else {
 
     }
@@ -314,7 +333,7 @@ mod test {
 
     #[test]
     fn test_parse_success() {
-        let mut data = BufReader::new("NES\x1A\x12\x34\x5C\x68\x77\x77\x07\x70\x01".as_bytes());
+        let mut data = BufReader::new("NES\x1A\x12\x34\x5C\x69\x77\x77\x07\x70\x01\x36".as_bytes());
         let result = parse(&mut data).unwrap();
         assert_eq!(result.header.prg_rom_size, 0x712);
         assert_eq!(result.header.chr_rom_size, 0x734);
@@ -329,6 +348,10 @@ mod test {
         assert_eq!(result.header.has_persistent_memory, false);
         assert_eq!(result.header.mirroring, Mirroring::Horizontal);
         assert_eq!(result.header.timing, Timing::PAL);
+        assert_eq!(result.header.console_type, ConsoleType::Vs(VsInfo {
+            ppu_type: VsPPUType::RC2C03B,
+            hardware_type: VsHardwareType::UniSystemSuperXeviousProtection
+        }));
     }
 
     #[test]

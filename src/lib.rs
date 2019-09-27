@@ -1,19 +1,14 @@
+#![deny(warnings)]
+
 use std::{
-    io::Read,
     convert::{From, TryFrom},
+    io::Read,
 };
 
 use nom::{
-    IResult as NomResult,
-    Slice as NomSlice,
-    bytes::complete as NomBytes,
-    sequence as NomSeq,
-    multi as NomMulti,
-    bits as NomConvert,
-    bits::complete as NomBits,
-    number::complete as NomNum,
-    Err as NomErr,
-    error::ErrorKind as NomErrorKind,
+    bits as NomConvert, bits::complete as NomBits, bytes::complete as NomBytes,
+    error::ErrorKind as NomErrorKind, number::complete as NomNum,
+    sequence as NomSeq, Err as NomErr, IResult as NomResult, Slice as NomSlice,
 };
 
 use num_enum::TryFromPrimitive;
@@ -70,9 +65,7 @@ pub enum VsPPUType {
     RC2C0503 = 0xA,
     RC2C0504 = 0xB,
     RC2C0505 = 0xC,
-    ReservedD = 0xD,
-    ReservedE = 0xE,
-    ReservedF= 0xF,
+    Reserved = 0xFF,
 }
 
 #[repr(u8)]
@@ -81,19 +74,11 @@ pub enum VsHardwareType {
     UniSystemNormal = 0x0,
     UniSystemRBIBaseballProtection = 0x1,
     UniSystemTKOBoxingProtection = 0x2,
-    UniSystemSuperXeviousProtection= 0x3,
+    UniSystemSuperXeviousProtection = 0x3,
     UniSystemVsIceClimberJapanProtection = 0x4,
     DualSystemNormal = 0x5,
     DualSystemRaidOnBungelingBayProtection = 0x6,
-    Reserved7 = 0x7,
-    Reserved8 = 0x8,
-    Reserved9 = 0x9,
-    ReservedA = 0xA,
-    ReservedB = 0xB,
-    ReservedC = 0xC,
-    ReservedD = 0xD,
-    ReservedE = 0xE,
-    ReservedF = 0xF,
+    Reserved = 0xFF,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -125,11 +110,7 @@ pub enum ExtendedConsoleType {
     VT09 = 0x8,
     VT32 = 0x9,
     VT369 = 0xA,
-    ReversedB = 0xB,
-    ReversedC = 0xC,
-    ReversedD = 0xD,
-    ReversedE = 0xE,
-    ReversedF = 0xF,
+    Reversed = 0xFF,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -138,6 +119,59 @@ pub enum ConsoleType {
     Vs(VsInfo),
     Pc10,
     Extend(ExtendedConsoleType),
+}
+
+#[repr(u8)]
+#[derive(Debug, Clone, Eq, PartialEq, TryFromPrimitive)]
+pub enum ExpansionDevice {
+    Unspecified = 0x00,
+    NES = 0x01,
+    NESFourScore = 0x02,
+    FamicomFourPlayersAdapterWithTwoAdditionalStandardControllers = 0x03,
+    VsSystem = 0x04,
+    VsSystemWithReversedInputs = 0x05,
+    VsPinballJapan = 0x06,
+    VsZapper = 0x07,
+    Zapper4017 = 0x08,
+    TwoZappers = 0x09,
+    BandaiHyperShot = 0x0A,
+    PowerPadSideA = 0x0B,
+    PowerPadSideB = 0x0C,
+    FamilyTrainerSideA = 0x0D,
+    FamilyTrainerSideB = 0x0E,
+    ArkanoidVausControllerNES = 0x0F,
+    ArkanoidVausControllerFamicom = 0x10,
+    TwoVausControllersPlusFamicomDataRecorder = 0x11,
+    KonamiHyperShot = 0x12,
+    CoconutsPachinkoController = 0x13,
+    ExcitingBoxingPunchingBag = 0x14,
+    JissenMahjongController = 0x15,
+    PartyTap = 0x16,
+    OekaKidsTablet = 0x17,
+    SunsoftBarcodeBattler = 0x18,
+    MiraclePianoKeyboard = 0x19,
+    PokkunMoguraa = 0x1A,
+    TopRider = 0x1B,
+    DoubleFisted = 0x1C,
+    Famicom3DSystem = 0x1D,
+    DoremikkoKeyboard = 0x1E,
+    ROBGyroSet = 0x1F,
+    FamicomDataRecorderDontEmulatekeyboard = 0x20,
+    ASCIITurboFile = 0x21,
+    IGSStorageBattleBox = 0x22,
+    FamilyBASICKeyboardPlusFamicomDataRecorder = 0x23,
+    DongdaPEC586Keyboard = 0x24,
+    BitCorpBit79Keyboard = 0x25,
+    SuborKeyboard = 0x26,
+    SuborKeyboardPlus3x8BitProtocolMouse = 0x27,
+    SuborKeyboardPlus24BitProtocolMouse = 0x28,
+    SNESMouse = 0x29,
+    Multicart = 0x2A,
+    TwoSNESControllersReplacingTheTwoStandardNESControllers = 0x2B,
+    RacerMateBicycle = 0x2C,
+    UForce = 0x2D,
+    ROBStackUp = 0x2E,
+    Reversed = 0xFF,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -158,91 +192,77 @@ pub struct NesFileHeader {
     timing: Timing,
     is_nes2: bool,
     console_type: ConsoleType,
+    default_expansion_device: ExpansionDevice,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct NesFile {
-    header: NesFileHeader
+    header: NesFileHeader,
 }
 
 fn bits_tuple<I, O, L>(l: L) -> impl Fn(I) -> NomResult<I, O>
-    where
-        I: NomSlice<std::ops::RangeFrom<usize>> + Clone,
-        L: NomSeq::Tuple<(I, usize), O, ((I, usize), NomErrorKind)> {
+where
+    I: NomSlice<std::ops::RangeFrom<usize>> + Clone,
+    L: NomSeq::Tuple<(I, usize), O, ((I, usize), NomErrorKind)>,
+{
     NomConvert::bits(NomSeq::tuple::<_, _, ((I, usize), NomErrorKind), _>(l))
 }
 
 fn parse_flag6(input: &[u8]) -> NomResult<&[u8], (u8, u8, u8, u8, u8)> {
-    let (input, (mapper_lo, flags)) = bits_tuple((
+    bits_tuple((
         NomBits::take(4u8),
-        NomMulti::count(NomBits::take(1u8), 4)
-    ))(input)?;
-
-    Ok((input, (mapper_lo, flags[0], flags[1], flags[2], flags[3])))
+        NomBits::take(1u8),
+        NomBits::take(1u8),
+        NomBits::take(1u8),
+        NomBits::take(1u8),
+    ))(input)
 }
 
 fn parse_flag7(input: &[u8]) -> NomResult<&[u8], (u8, u8, u8)> {
-    let (input, (mapper_mid, nes2, console_type)) = bits_tuple((
-        NomBits::take(4u8),
-        NomBits::take(2u8),
-        NomBits::take(2u8),
-    ))(input)?;
-    Ok((input, (mapper_mid, nes2, console_type)))
+    bits_tuple((NomBits::take(4u8), NomBits::take(2u8), NomBits::take(2u8)))(input)
 }
 
 fn parse_flag8(input: &[u8]) -> NomResult<&[u8], (u8, u8)> {
-    bits_tuple((
-        NomBits::take(4u8),
-        NomBits::take(4u8),
-    ))(input)
+    bits_tuple((NomBits::take(4u8), NomBits::take(4u8)))(input)
 }
 
 fn parse_flag9(input: &[u8]) -> NomResult<&[u8], (u8, u8)> {
-    bits_tuple((
-        NomBits::take(4u8),
-        NomBits::take(4u8),
-    ))(input)
+    bits_tuple((NomBits::take(4u8), NomBits::take(4u8)))(input)
 }
 
 fn parse_flag10(input: &[u8]) -> NomResult<&[u8], (u8, u8)> {
-    bits_tuple((
-        NomBits::take(4u8),
-        NomBits::take(4u8),
-    ))(input)
+    bits_tuple((NomBits::take(4u8), NomBits::take(4u8)))(input)
 }
 
 fn parse_flag11(input: &[u8]) -> NomResult<&[u8], (u8, u8)> {
-    bits_tuple((
-        NomBits::take(4u8),
-        NomBits::take(4u8),
-    ))(input)
+    bits_tuple((NomBits::take(4u8), NomBits::take(4u8)))(input)
 }
 
 fn parse_flag12(input: &[u8]) -> NomResult<&[u8], u8> {
-    let (input, (_unused, timing)): (_, (u8, _ )) = bits_tuple((
-        NomBits::take(6u8),
-        NomBits::take(2u8),
-    ))(input)?;
+    let (input, (_unused, timing)): (_, (u8, _)) =
+        bits_tuple((NomBits::take(6u8), NomBits::take(2u8)))(input)?;
     Ok((input, timing))
 }
 
 fn parse_flag13(input: &[u8]) -> NomResult<&[u8], (u8, u8)> {
-    bits_tuple((
-        NomBits::take(4u8),
-        NomBits::take(4u8),
-    ))(input)
+    bits_tuple((NomBits::take(4u8), NomBits::take(4u8)))(input)
 }
 
 fn parse_flag14(input: &[u8]) -> NomResult<&[u8], u8> {
-    let (input, (_unused, timing)): (_, (u8, _ )) = bits_tuple((
-        NomBits::take(6u8),
-        NomBits::take(2u8),
-    ))(input)?;
+    let (input, (_unused, timing)): (_, (u8, _)) =
+        bits_tuple((NomBits::take(6u8), NomBits::take(2u8)))(input)?;
     Ok((input, timing))
 }
 
+fn parse_flag15(input: &[u8]) -> NomResult<&[u8], u8> {
+    let (input, (_unused, device)): (_, (u8, _)) =
+        bits_tuple((NomBits::take(2u8), NomBits::take(6u8)))(input)?;
+    Ok((input, device))
+}
+
 fn parse_header(input: &[u8]) -> NomResult<&[u8], NesFileHeader> {
-    let (input, (_, prg_rom_size_lo, chr_rom_size_lo)) = NomSeq::tuple((NomBytes::tag("NES\x1A"), NomNum::le_u8, NomNum::le_u8))(input)?;
+    let (input, (_, prg_rom_size_lo, chr_rom_size_lo)) =
+        NomSeq::tuple((NomBytes::tag("NES\x1A"), NomNum::le_u8, NomNum::le_u8))(input)?;
     let mut prg_rom_size = prg_rom_size_lo as u16;
     let mut chr_rom_size = chr_rom_size_lo as u16;
     let (input, (mapper_lo, f, t, b, m)) = parse_flag6(input)?;
@@ -252,12 +272,14 @@ fn parse_header(input: &[u8]) -> NomResult<&[u8], NesFileHeader> {
         0 => ConsoleType::Nes,
         1 => ConsoleType::Vs(VsInfo::default()),
         2 => ConsoleType::Pc10,
-        3 => if is_nes2 {
-            ConsoleType::Extend(ExtendedConsoleType::Regular)
-        } else {
-            // FIXME: Can iNES 1.0 format's console_type bits be 0b11?
-            ConsoleType::Vs(VsInfo::default())
-        },
+        3 => {
+            if is_nes2 {
+                ConsoleType::Extend(ExtendedConsoleType::Regular)
+            } else {
+                // FIXME: Can iNES 1.0 format's console_type bits be 0b11?
+                ConsoleType::Vs(VsInfo::default())
+            }
+        }
         _ => unreachable!("console type must in 0 - 3"),
     };
     let mut sub_mapper = 0;
@@ -267,6 +289,7 @@ fn parse_header(input: &[u8]) -> NomResult<&[u8], NesFileHeader> {
     let mut chr_nv_ram_size: u32 = 0;
     let mut timing = Timing::NTSC;
     let mut miscellaneous_rom_count = 0;
+    let mut default_expansion_device = ExpansionDevice::Reversed;
     if is_nes2 {
         let (input, (sub_mapper_actual, mapper_hi)) = parse_flag8(input)?;
         sub_mapper = sub_mapper_actual;
@@ -297,35 +320,46 @@ fn parse_header(input: &[u8]) -> NomResult<&[u8], NesFileHeader> {
 
         let (input, (a, b)) = parse_flag13(input)?;
         if let ConsoleType::Vs(ref mut info) = console {
-            info.hardware_type = VsHardwareType::try_from(a).unwrap();
-            info.ppu_type = VsPPUType::try_from(b).unwrap();
+            info.hardware_type = VsHardwareType::try_from(a).unwrap_or(VsHardwareType::Reserved);
+            info.ppu_type = VsPPUType::try_from(b).unwrap_or(VsPPUType::Reserved);
         } else if let ConsoleType::Extend(ref mut extend) = console {
-            *extend = ExtendedConsoleType::try_from(b).unwrap();
+            *extend = ExtendedConsoleType::try_from(b).unwrap_or(ExtendedConsoleType::Reversed);
         }
 
         let (input, miscellaneous_rom_count_actual) = parse_flag14(input)?;
         miscellaneous_rom_count = miscellaneous_rom_count_actual;
-    } else {
 
+        let (_input, device) = parse_flag15(input)?;
+        default_expansion_device =
+            ExpansionDevice::try_from(device).unwrap_or(ExpansionDevice::Reversed);
+    } else {
     }
-    Ok((input, NesFileHeader {
-        prg_rom_size,
-        chr_rom_size,
-        prg_ram_size,
-        prg_nv_ram_size,
-        chr_ram_size,
-        chr_nv_ram_size,
-        miscellaneous_rom_count,
-        mapper: mapper_lo as u16 | ((mapper_mid as u16) << 4),
-        sub_mapper,
-        is_four_screen: f == 1,
-        has_trainer: t == 1,
-        has_persistent_memory: b == 1,
-        mirroring: if m == 1 { Mirroring::Vertical } else { Mirroring::Horizontal },
-        timing,
-        is_nes2,
-        console_type: console,
-    }))
+    Ok((
+        input,
+        NesFileHeader {
+            prg_rom_size,
+            chr_rom_size,
+            prg_ram_size,
+            prg_nv_ram_size,
+            chr_ram_size,
+            chr_nv_ram_size,
+            miscellaneous_rom_count,
+            mapper: mapper_lo as u16 | ((mapper_mid as u16) << 4),
+            sub_mapper,
+            is_four_screen: f == 1,
+            has_trainer: t == 1,
+            has_persistent_memory: b == 1,
+            mirroring: if m == 1 {
+                Mirroring::Vertical
+            } else {
+                Mirroring::Horizontal
+            },
+            timing,
+            is_nes2,
+            console_type: console,
+            default_expansion_device,
+        },
+    ))
 }
 
 fn parse_all(input: &[u8]) -> NomResult<&[u8], NesFile> {
@@ -347,7 +381,8 @@ mod test {
 
     #[test]
     fn test_parse_success() {
-        let mut data = BufReader::new("NES\x1A\x12\x34\x5C\x69\x77\x77\x07\x70\x01\x36\x03".as_bytes());
+        let mut data =
+            BufReader::new("NES\x1A\x12\x34\x5C\x69\x77\x77\x07\x70\x01\x36\x03\x17".as_bytes());
         let result = parse(&mut data).unwrap();
         assert_eq!(result.header.prg_rom_size, 0x712);
         assert_eq!(result.header.chr_rom_size, 0x734);
@@ -363,20 +398,30 @@ mod test {
         assert_eq!(result.header.has_persistent_memory, false);
         assert_eq!(result.header.mirroring, Mirroring::Horizontal);
         assert_eq!(result.header.timing, Timing::PAL);
-        assert_eq!(result.header.console_type, ConsoleType::Vs(VsInfo {
-            ppu_type: VsPPUType::RC2C03B,
-            hardware_type: VsHardwareType::UniSystemSuperXeviousProtection
-        }));
+        assert_eq!(
+            result.header.console_type,
+            ConsoleType::Vs(VsInfo {
+                ppu_type: VsPPUType::RC2C03B,
+                hardware_type: VsHardwareType::UniSystemSuperXeviousProtection
+            })
+        );
+        assert_eq!(
+            result.header.default_expansion_device,
+            ExpansionDevice::OekaKidsTablet
+        );
     }
 
     #[test]
     fn test_parse_eof() {
         let mut data = BufReader::new("NES\x1A".as_bytes());
         let result = parse(&mut data);
-        assert_eq!(match result {
-            Err(ParseError::DataInvalid(ref s)) => s,
-            Err(_) => panic!("return an incorrect parse error"),
-            Ok(_) => panic!("parse success on error data"),
-        }, "End of file");
+        assert_eq!(
+            match result {
+                Err(ParseError::DataInvalid(ref s)) => s,
+                Err(_) => panic!("return an incorrect parse error"),
+                Ok(_) => panic!("parse success on error data"),
+            },
+            "End of file"
+        );
     }
 }

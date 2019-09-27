@@ -15,3 +15,4 @@ path = "src/lib.rs"
 
 [dependencies]
 nom = "5.0.1"
+num_enum = "0.4.1"

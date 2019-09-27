@@ -1,6 +1,6 @@
 use std::{
     io::Read,
-    convert::From,
+    convert::{From, TryFrom},
 };
 
 use nom::{
@@ -15,6 +15,8 @@ use nom::{
     Err as NomErr,
     error::ErrorKind as NomErrorKind,
 };
+
+use num_enum::TryFromPrimitive;
 
 #[derive(Debug)]
 pub enum ParseError {
@@ -44,7 +46,16 @@ pub enum Mirroring {
 }
 
 #[repr(u8)]
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, TryFromPrimitive)]
+pub enum Timing {
+    NTSC = 0x0,
+    PAL = 0x1,
+    MultipleRegion = 0x2,
+    Dendy = 0x3,
+}
+
+#[repr(u8)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, TryFromPrimitive)]
 pub enum VsPPUType {
     RP2C03B = 0x0,
     RP2C03G = 0x1,
@@ -59,11 +70,13 @@ pub enum VsPPUType {
     RC2C0503 = 0xA,
     RC2C0504 = 0xB,
     RC2C0505 = 0xC,
-    Reserved = 0xD,
+    ReservedD = 0xD,
+    ReservedE = 0xE,
+    ReservedF= 0xF,
 }
 
 #[repr(u8)]
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, TryFromPrimitive)]
 pub enum VsHardwareType {
     UniSystemNormal = 0x0,
     UniSystemRBIBaseballProtection = 0x1,
@@ -72,7 +85,15 @@ pub enum VsHardwareType {
     UniSystemVsIceClimberJapanProtection = 0x4,
     DualSystemNormal = 0x5,
     DualSystemRaidOnBungelingBayProtection = 0x6,
-    Reserved = 0x7,
+    Reserved7 = 0x7,
+    Reserved8 = 0x8,
+    Reserved9 = 0x9,
+    ReservedA = 0xA,
+    ReservedB = 0xB,
+    ReservedC = 0xC,
+    ReservedD = 0xD,
+    ReservedE = 0xE,
+    ReservedF = 0xF,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -84,8 +105,8 @@ pub struct VsInfo {
 impl Default for VsInfo {
     fn default() -> Self {
         Self {
-            ppu_type: VsPPUType::Reserved,
-            hardware_type: VsHardwareType::Reserved,
+            ppu_type: VsPPUType::RP2C03B,
+            hardware_type: VsHardwareType::UniSystemNormal,
         }
     }
 }
@@ -129,6 +150,7 @@ pub struct NesFileHeader {
     has_trainer: bool,
     has_persistent_memory: bool,
     mirroring: Mirroring,
+    timing: Timing,
     is_nes2: bool,
     console_type: ConsoleType,
 }
@@ -191,6 +213,14 @@ fn parse_flag11(input: &[u8]) -> NomResult<&[u8], (u8, u8)> {
     ))(input)
 }
 
+fn parse_flag12(input: &[u8]) -> NomResult<&[u8], u8> {
+    let (input, (_unused, timing)): (_, (u8, _ )) = bits_tuple((
+        NomBits::take(6u8),
+        NomBits::take(2u8),
+    ))(input)?;
+    Ok((input, timing))
+}
+
 fn parse_header(input: &[u8]) -> NomResult<&[u8], NesFileHeader> {
     let (input, (_, prg_rom_size_lo, chr_rom_size_lo)) = NomSeq::tuple((NomBytes::tag("NES\x1A"), NomNum::le_u8, NomNum::le_u8))(input)?;
     let mut prg_rom_size = prg_rom_size_lo as u16;
@@ -215,6 +245,7 @@ fn parse_header(input: &[u8]) -> NomResult<&[u8], NesFileHeader> {
     let mut prg_nv_ram_size: u32 = 0;
     let mut chr_ram_size: u32 = 0;
     let mut chr_nv_ram_size: u32 = 0;
+    let mut timing = Timing::NTSC;
     if is_nes2 {
         let (input, (sub_mapper_actual, mapper_hi)) = parse_flag8(input)?;
         sub_mapper = sub_mapper_actual;
@@ -239,6 +270,9 @@ fn parse_header(input: &[u8]) -> NomResult<&[u8], NesFileHeader> {
         if chr_nv_ram_shift != 0 {
             chr_nv_ram_size = 64u32 << chr_nv_ram_shift as u32;
         }
+
+        let (input, timing_actual) = parse_flag12(input)?;
+        timing = Timing::try_from(timing_actual).unwrap();
     } else {
 
     }
@@ -255,6 +289,7 @@ fn parse_header(input: &[u8]) -> NomResult<&[u8], NesFileHeader> {
         has_trainer: t == 1,
         has_persistent_memory: b == 1,
         mirroring: if m == 1 { Mirroring::Vertical } else { Mirroring::Horizontal },
+        timing,
         is_nes2,
         console_type: console,
     }))
@@ -279,7 +314,7 @@ mod test {
 
     #[test]
     fn test_parse_success() {
-        let mut data = BufReader::new("NES\x1A\x12\x34\x5C\x68\x77\x77\x07\x70".as_bytes());
+        let mut data = BufReader::new("NES\x1A\x12\x34\x5C\x68\x77\x77\x07\x70\x01".as_bytes());
         let result = parse(&mut data).unwrap();
         assert_eq!(result.header.prg_rom_size, 0x712);
         assert_eq!(result.header.chr_rom_size, 0x734);
@@ -293,6 +328,7 @@ mod test {
         assert!(result.header.has_trainer);
         assert_eq!(result.header.has_persistent_memory, false);
         assert_eq!(result.header.mirroring, Mirroring::Horizontal);
+        assert_eq!(result.header.timing, Timing::PAL);
     }
 
     #[test]

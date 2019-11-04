@@ -34,10 +34,11 @@ impl<T> From<NomErr<(T, NomErrorKind)>> for ParseError {
     }
 }
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[repr(u8)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, TryFromPrimitive)]
 pub enum Mirroring {
-    Horizontal,
-    Vertical,
+    Horizontal = 0,
+    Vertical = 1,
 }
 
 #[repr(u8)]
@@ -189,6 +190,7 @@ pub struct NesFileHeader {
     has_trainer: bool,
     has_persistent_memory: bool,
     mirroring: Mirroring,
+    has_bus_conflicts: bool,
     timing: Timing,
     is_nes2: bool,
     console_type: ConsoleType,
@@ -203,12 +205,11 @@ pub struct NesFile {
 fn bits_tuple<I, O, L>(l: L) -> impl Fn(I) -> NomResult<I, O>
 where
     I: NomSlice<std::ops::RangeFrom<usize>> + Clone,
-    L: NomSeq::Tuple<(I, usize), O, ((I, usize), NomErrorKind)>,
-{
+    L: NomSeq::Tuple<(I, usize), O, ((I, usize), NomErrorKind)> {
     NomConvert::bits(NomSeq::tuple::<_, _, ((I, usize), NomErrorKind), _>(l))
 }
 
-fn parse_flag6(input: &[u8]) -> NomResult<&[u8], (u8, u8, u8, u8, u8)> {
+fn parse_flag6_common(input: &[u8]) -> NomResult<&[u8], (u8, u8, u8, u8, u8)> {
     bits_tuple((
         NomBits::take(4u8),
         NomBits::take(1u8),
@@ -218,46 +219,69 @@ fn parse_flag6(input: &[u8]) -> NomResult<&[u8], (u8, u8, u8, u8, u8)> {
     ))(input)
 }
 
-fn parse_flag7(input: &[u8]) -> NomResult<&[u8], (u8, u8, u8)> {
+fn parse_flag7_common(input: &[u8]) -> NomResult<&[u8], (u8, u8, u8)> {
     bits_tuple((NomBits::take(4u8), NomBits::take(2u8), NomBits::take(2u8)))(input)
 }
 
-fn parse_flag8(input: &[u8]) -> NomResult<&[u8], (u8, u8)> {
+fn parse_flag8_nes2(input: &[u8]) -> NomResult<&[u8], (u8, u8)> {
     bits_tuple((NomBits::take(4u8), NomBits::take(4u8)))(input)
 }
 
-fn parse_flag9(input: &[u8]) -> NomResult<&[u8], (u8, u8)> {
+fn parse_flag8_nes1(input: &[u8]) -> NomResult<&[u8], u8> {
+    NomNum::be_u8(input)
+}
+
+fn parse_flag9_nes2(input: &[u8]) -> NomResult<&[u8], (u8, u8)> {
     bits_tuple((NomBits::take(4u8), NomBits::take(4u8)))(input)
 }
 
-fn parse_flag10(input: &[u8]) -> NomResult<&[u8], (u8, u8)> {
+fn parse_flag9_nes1(input: &[u8]) -> NomResult<&[u8], (u8, u8)> {
+    bits_tuple((NomBits::take(7u8), NomBits::take(1u8)))(input)
+}
+
+fn parse_flag10_nes2(input: &[u8]) -> NomResult<&[u8], (u8, u8)> {
     bits_tuple((NomBits::take(4u8), NomBits::take(4u8)))(input)
 }
 
-fn parse_flag11(input: &[u8]) -> NomResult<&[u8], (u8, u8)> {
+fn parse_flag10_nes1(input: &[u8]) -> NomResult<&[u8], (u8, u8, u8)> {
+    let (input, (_, bus_conflicts, no_prg_ram, _, tv_system)) = bits_tuple((
+        NomBits::take::<_, u8, _, _>(2u8),
+        NomBits::take(1u8),
+        NomBits::take(1u8),
+        NomBits::take::<_, u8, _, _>(2u8),
+        NomBits::take(2u8)
+    ))(input)?;
+    Ok((input, (bus_conflicts, no_prg_ram, tv_system)))
+}
+
+fn parse_flag11_nes2(input: &[u8]) -> NomResult<&[u8], (u8, u8)> {
     bits_tuple((NomBits::take(4u8), NomBits::take(4u8)))(input)
 }
 
-fn parse_flag12(input: &[u8]) -> NomResult<&[u8], u8> {
+fn parse_flag12_nes2(input: &[u8]) -> NomResult<&[u8], u8> {
     let (input, (_unused, timing)): (_, (u8, _)) =
         bits_tuple((NomBits::take(6u8), NomBits::take(2u8)))(input)?;
     Ok((input, timing))
 }
 
-fn parse_flag13(input: &[u8]) -> NomResult<&[u8], (u8, u8)> {
+fn parse_flag13_nes2(input: &[u8]) -> NomResult<&[u8], (u8, u8)> {
     bits_tuple((NomBits::take(4u8), NomBits::take(4u8)))(input)
 }
 
-fn parse_flag14(input: &[u8]) -> NomResult<&[u8], u8> {
+fn parse_flag14_nes2(input: &[u8]) -> NomResult<&[u8], u8> {
     let (input, (_unused, timing)): (_, (u8, _)) =
         bits_tuple((NomBits::take(6u8), NomBits::take(2u8)))(input)?;
     Ok((input, timing))
 }
 
-fn parse_flag15(input: &[u8]) -> NomResult<&[u8], u8> {
+fn parse_flag15_nes2(input: &[u8]) -> NomResult<&[u8], u8> {
     let (input, (_unused, device)): (_, (u8, _)) =
         bits_tuple((NomBits::take(2u8), NomBits::take(6u8)))(input)?;
     Ok((input, device))
+}
+
+fn nes1_ignore_flag_11_to_15(input: &[u8]) -> NomResult<&[u8], &[u8]> {
+    NomBytes::take(5u8)(input)
 }
 
 fn parse_header(input: &[u8]) -> NomResult<&[u8], NesFileHeader> {
@@ -265,8 +289,8 @@ fn parse_header(input: &[u8]) -> NomResult<&[u8], NesFileHeader> {
         NomSeq::tuple((NomBytes::tag("NES\x1A"), NomNum::le_u8, NomNum::le_u8))(input)?;
     let mut prg_rom_size = prg_rom_size_lo as u16;
     let mut chr_rom_size = chr_rom_size_lo as u16;
-    let (input, (mapper_lo, f, t, b, m)) = parse_flag6(input)?;
-    let (input, (mut mapper_mid, nes2, console_type)) = parse_flag7(input)?;
+    let (input, (mapper_lo, f, t, b, m)) = parse_flag6_common(input)?;
+    let (input, (mut mapper_mid, nes2, console_type)) = parse_flag7_common(input)?;
     let is_nes2 = nes2 == 0b10;
     let mut console = match console_type {
         0 => ConsoleType::Nes,
@@ -287,19 +311,20 @@ fn parse_header(input: &[u8]) -> NomResult<&[u8], NesFileHeader> {
     let mut prg_nv_ram_size: u32 = 0;
     let mut chr_ram_size: u32 = 0;
     let mut chr_nv_ram_size: u32 = 0;
-    let mut timing = Timing::NTSC;
+    let timing;
+    let mut has_bus_conflicts = false;
     let mut miscellaneous_rom_count = 0;
-    let mut default_expansion_device = ExpansionDevice::Reversed;
+    let mut default_expansion_device = ExpansionDevice::Unspecified;
     if is_nes2 {
-        let (input, (sub_mapper_actual, mapper_hi)) = parse_flag8(input)?;
+        let (input, (sub_mapper_actual, mapper_hi)) = parse_flag8_nes2(input)?;
         sub_mapper = sub_mapper_actual;
         mapper_mid |= mapper_hi << 4;
 
-        let (input, (prg_rom_size_hi, chr_rom_size_hi)) = parse_flag9(input)?;
+        let (input, (prg_rom_size_hi, chr_rom_size_hi)) = parse_flag9_nes2(input)?;
         prg_rom_size |= (prg_rom_size_hi as u16) << 8;
         chr_rom_size |= (chr_rom_size_hi as u16) << 8;
 
-        let (input, (prg_ram_shift, prg_nv_ram_shift)) = parse_flag10(input)?;
+        let (input, (prg_ram_shift, prg_nv_ram_shift)) = parse_flag10_nes2(input)?;
         if prg_ram_shift != 0 {
             prg_ram_size = 64u32 << prg_ram_shift as u32;
         }
@@ -307,7 +332,7 @@ fn parse_header(input: &[u8]) -> NomResult<&[u8], NesFileHeader> {
             prg_nv_ram_size = 64u32 << prg_nv_ram_shift as u32;
         }
 
-        let (input, (chr_ram_shift, chr_nv_ram_shift)) = parse_flag11(input)?;
+        let (input, (chr_ram_shift, chr_nv_ram_shift)) = parse_flag11_nes2(input)?;
         if chr_ram_shift != 0 {
             chr_ram_size = 64u32 << chr_ram_shift as u32;
         }
@@ -315,10 +340,10 @@ fn parse_header(input: &[u8]) -> NomResult<&[u8], NesFileHeader> {
             chr_nv_ram_size = 64u32 << chr_nv_ram_shift as u32;
         }
 
-        let (input, timing_actual) = parse_flag12(input)?;
+        let (input, timing_actual) = parse_flag12_nes2(input)?;
         timing = Timing::try_from(timing_actual).unwrap();
 
-        let (input, (a, b)) = parse_flag13(input)?;
+        let (input, (a, b)) = parse_flag13_nes2(input)?;
         if let ConsoleType::Vs(ref mut info) = console {
             info.hardware_type = VsHardwareType::try_from(a).unwrap_or(VsHardwareType::Reserved);
             info.ppu_type = VsPPUType::try_from(b).unwrap_or(VsPPUType::Reserved);
@@ -326,13 +351,32 @@ fn parse_header(input: &[u8]) -> NomResult<&[u8], NesFileHeader> {
             *extend = ExtendedConsoleType::try_from(b).unwrap_or(ExtendedConsoleType::Reversed);
         }
 
-        let (input, miscellaneous_rom_count_actual) = parse_flag14(input)?;
+        let (input, miscellaneous_rom_count_actual) = parse_flag14_nes2(input)?;
         miscellaneous_rom_count = miscellaneous_rom_count_actual;
 
-        let (_input, device) = parse_flag15(input)?;
+        let (_input, device) = parse_flag15_nes2(input)?;
         default_expansion_device =
             ExpansionDevice::try_from(device).unwrap_or(ExpansionDevice::Reversed);
     } else {
+        let (input, prg_ram_size_actual) = parse_flag8_nes1(input)?;
+        // 8KB per unit, 0 as 8KB
+        prg_ram_size = u32::max(1, prg_ram_size_actual as u32) * 8 * 1024;
+
+        let (input, (_reserved, _timing_actual)) = parse_flag9_nes1(input)?;
+
+        let (input, (bus_conflicts, no_prg_ram, timing_actual)) = parse_flag10_nes1(input)?;
+        has_bus_conflicts = bus_conflicts != 0;
+        if no_prg_ram != 0 {
+            prg_ram_size = 0;
+        }
+        timing = match timing_actual {
+            0 => Timing::NTSC,
+            2 => Timing::PAL,
+            1 | 3 => Timing::MultipleRegion,
+            _ => unreachable!(),
+        };
+
+        let (_input, _) = nes1_ignore_flag_11_to_15(input)?;
     }
     Ok((
         input,
@@ -349,11 +393,8 @@ fn parse_header(input: &[u8]) -> NomResult<&[u8], NesFileHeader> {
             is_four_screen: f == 1,
             has_trainer: t == 1,
             has_persistent_memory: b == 1,
-            mirroring: if m == 1 {
-                Mirroring::Vertical
-            } else {
-                Mirroring::Horizontal
-            },
+            mirroring: Mirroring::try_from(m).unwrap(),
+            has_bus_conflicts,
             timing,
             is_nes2,
             console_type: console,

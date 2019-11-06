@@ -2,34 +2,29 @@
 
 use std::{
     convert::{From, TryFrom},
-    io::Read,
 };
 
 use nom::{
-    bits as NomConvert, bits::complete as NomBits, bytes::complete as NomBytes,
+    bits as NomConvert, bits::streaming as NomBits, bytes::streaming as NomBytes,
     error::ErrorKind as NomErrorKind, number::complete as NomNum,
     sequence as NomSeq, Err as NomErr, IResult as NomResult, Slice as NomSlice,
 };
 
 use num_enum::TryFromPrimitive;
 
+const KB: u32 = 1 << 10;
+const TRAINER_SIZE: u32 = 512;
+
 #[derive(Debug)]
 pub enum ParseError {
-    IoError(std::io::Error),
     DataInvalid(String),
-}
-
-impl From<std::io::Error> for ParseError {
-    fn from(err: std::io::Error) -> Self {
-        ParseError::IoError(err)
-    }
 }
 
 impl<T> From<NomErr<(T, NomErrorKind)>> for ParseError {
     fn from(err: NomErr<(T, NomErrorKind)>) -> Self {
         ParseError::DataInvalid(match err {
             NomErr::Incomplete(_) => "There was not enough data".to_string(),
-            NomErr::Failure(e) | NomErr::Error(e) => e.1.description().to_string(),
+            NomErr::Failure((_, e)) | NomErr::Error((_, e)) => e.description().to_string(),
         })
     }
 }
@@ -177,8 +172,8 @@ pub enum ExpansionDevice {
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct NesFileHeader {
-    prg_rom_size: u16,
-    chr_rom_size: u16,
+    prg_rom_size: u32,
+    chr_rom_size: u32,
     prg_ram_size: u32,
     prg_nv_ram_size: u32,
     chr_ram_size: u32,
@@ -198,8 +193,12 @@ pub struct NesFileHeader {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct NesFile {
-    header: NesFileHeader,
+pub struct NesFile<'a> {
+    pub header: NesFileHeader,
+    pub trainer: Option<&'a [u8]>,
+    pub prg_rom: &'a [u8],
+    pub chr_rom: &'a [u8],
+    pub miscellaneous: &'a [u8],
 }
 
 fn bits_tuple<I, O, L>(l: L) -> impl Fn(I) -> NomResult<I, O>
@@ -287,9 +286,11 @@ fn nes1_ignore_flag_11_to_15(input: &[u8]) -> NomResult<&[u8], &[u8]> {
 fn parse_header(input: &[u8]) -> NomResult<&[u8], NesFileHeader> {
     let (input, (_, prg_rom_size_lo, chr_rom_size_lo)) =
         NomSeq::tuple((NomBytes::tag("NES\x1A"), NomNum::le_u8, NomNum::le_u8))(input)?;
-    let mut prg_rom_size = prg_rom_size_lo as u16;
-    let mut chr_rom_size = chr_rom_size_lo as u16;
+    let mut prg_rom_size = prg_rom_size_lo as u32;
+    let mut chr_rom_size = chr_rom_size_lo as u32;
+
     let (input, (mapper_lo, f, t, b, m)) = parse_flag6_common(input)?;
+
     let (input, (mut mapper_mid, nes2, console_type)) = parse_flag7_common(input)?;
     let is_nes2 = nes2 == 0b10;
     let mut console = match console_type {
@@ -306,6 +307,7 @@ fn parse_header(input: &[u8]) -> NomResult<&[u8], NesFileHeader> {
         }
         _ => unreachable!("console type must in 0 - 3"),
     };
+
     let mut sub_mapper = 0;
     let mut prg_ram_size: u32 = 0;
     let mut prg_nv_ram_size: u32 = 0;
@@ -315,14 +317,15 @@ fn parse_header(input: &[u8]) -> NomResult<&[u8], NesFileHeader> {
     let mut has_bus_conflicts = false;
     let mut miscellaneous_rom_count = 0;
     let mut default_expansion_device = ExpansionDevice::Unspecified;
+
     if is_nes2 {
         let (input, (sub_mapper_actual, mapper_hi)) = parse_flag8_nes2(input)?;
         sub_mapper = sub_mapper_actual;
         mapper_mid |= mapper_hi << 4;
 
         let (input, (prg_rom_size_hi, chr_rom_size_hi)) = parse_flag9_nes2(input)?;
-        prg_rom_size |= (prg_rom_size_hi as u16) << 8;
-        chr_rom_size |= (chr_rom_size_hi as u16) << 8;
+        prg_rom_size |= (prg_rom_size_hi as u32) << 8;
+        chr_rom_size |= (chr_rom_size_hi as u32) << 8;
 
         let (input, (prg_ram_shift, prg_nv_ram_shift)) = parse_flag10_nes2(input)?;
         if prg_ram_shift != 0 {
@@ -378,6 +381,25 @@ fn parse_header(input: &[u8]) -> NomResult<&[u8], NesFileHeader> {
 
         let (_input, _) = nes1_ignore_flag_11_to_15(input)?;
     }
+
+    prg_rom_size = if prg_rom_size >> 8 == 0xF {
+        // size = 2^E *(MM*2+1)
+        let mm = prg_rom_size & 0b00000011;
+        let e = (prg_rom_size & 0xF) >> 2;
+        (1 << e) * (mm * 2 + 1)
+    } else {
+        prg_rom_size * 16 * KB
+    };
+
+    chr_rom_size = if chr_rom_size >> 8 == 0xF {
+        // size = 2^E *(MM*2+1)
+        let mm = chr_rom_size & 0b00000011;
+        let e = chr_rom_size >> 2;
+        (1 << e) * (mm * 2 + 1)
+    } else {
+        chr_rom_size * 16 * KB
+    };
+
     Ok((
         input,
         NesFileHeader {
@@ -403,66 +425,22 @@ fn parse_header(input: &[u8]) -> NomResult<&[u8], NesFileHeader> {
     ))
 }
 
-fn parse_all(input: &[u8]) -> NomResult<&[u8], NesFile> {
+pub fn parse<'a, I: AsRef<[u8]>>(input: &I) -> Result<NesFile, ParseError> {
+    let input = input.as_ref();
     let (input, header) = parse_header(input)?;
-    Ok((input, NesFile { header }))
-}
 
-pub fn parse<R: Read>(reader: &mut R) -> Result<NesFile, ParseError> {
-    let mut data = Vec::new();
-    reader.read_to_end(&mut data)?;
-    let (_, nes_file) = parse_all(&data)?;
-    Ok(nes_file)
-}
+    let (input, trainer) = if header.has_trainer {
+        let (next_input, trainer_body) = NomBytes::take(TRAINER_SIZE)(input)?;
+        (next_input, Some(trainer_body))
+    } else {
+        (input, None)
+    };
 
-#[cfg(test)]
-mod test {
-    use super::*;
-    use std::io::BufReader;
+    let (input, prg_rom) = NomBytes::take(header.prg_rom_size)(input)?;
 
-    #[test]
-    fn test_parse_success() {
-        let mut data =
-            BufReader::new("NES\x1A\x12\x34\x5C\x69\x77\x77\x07\x70\x01\x36\x03\x17".as_bytes());
-        let result = parse(&mut data).unwrap();
-        assert_eq!(result.header.prg_rom_size, 0x712);
-        assert_eq!(result.header.chr_rom_size, 0x734);
-        assert_eq!(result.header.prg_ram_size, 0);
-        assert_eq!(result.header.prg_nv_ram_size, 8192);
-        assert_eq!(result.header.chr_ram_size, 8192);
-        assert_eq!(result.header.chr_nv_ram_size, 0);
-        assert_eq!(result.header.miscellaneous_rom_count, 3);
-        assert_eq!(result.header.mapper, 0x765);
-        assert_eq!(result.header.sub_mapper, 0x7);
-        assert!(result.header.is_four_screen);
-        assert!(result.header.has_trainer);
-        assert_eq!(result.header.has_persistent_memory, false);
-        assert_eq!(result.header.mirroring, Mirroring::Horizontal);
-        assert_eq!(result.header.timing, Timing::PAL);
-        assert_eq!(
-            result.header.console_type,
-            ConsoleType::Vs(VsInfo {
-                ppu_type: VsPPUType::RC2C03B,
-                hardware_type: VsHardwareType::UniSystemSuperXeviousProtection
-            })
-        );
-        assert_eq!(
-            result.header.default_expansion_device,
-            ExpansionDevice::OekaKidsTablet
-        );
-    }
+    let (input, chr_rom) = NomBytes::take(header.chr_rom_size)(input)?;
 
-    #[test]
-    fn test_parse_eof() {
-        let mut data = BufReader::new("NES\x1A".as_bytes());
-        let result = parse(&mut data);
-        assert_eq!(
-            match result {
-                Err(ParseError::DataInvalid(ref s)) => s,
-                Err(_) => panic!("return an incorrect parse error"),
-                Ok(_) => panic!("parse success on error data"),
-            },
-            "End of file"
-        );
-    }
+    let miscellaneous = input;
+
+    Ok(NesFile { header,  trainer, prg_rom, chr_rom, miscellaneous})
 }

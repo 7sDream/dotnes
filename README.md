@@ -1,6 +1,6 @@
 # dotnes
 
-Yet another .nes file parser.
+Yet another .nes file parser, for my [sau][sau-repo] project.
 
 ## Usage
 
@@ -50,4 +50,7 @@ Misc ROM       : [255, 255, 184, 224, 36, 225, 180, 224]
 
 ## LICENSE
 
-GPLv3, SEE [LICENSE](https://git.7sdre.am/7sDream/dotnes/src/branch/master/LICENSE).
+GPLv3, SEE [LICENSE](license-file).
+
+[sau-repo]: https://git.7sdre.am/7sDream/sau 
+[license-file]: https://git.7sdre.am/7sDream/dotnes/src/branch/master/LICENS

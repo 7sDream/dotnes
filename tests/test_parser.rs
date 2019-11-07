@@ -10,7 +10,7 @@ fn readme_example_works() {
     println!("NES file Header: {:#?}", nes.header);
     println!("PRG ROM        : {:?}...", &nes.prg_rom[0..usize::min(16, nes.prg_rom.len())]);
     println!("CHR ROM        : {:?}...", &nes.chr_rom[0..usize::min(16, nes.chr_rom.len())]);
-    println!("Misc ROM       : {:?}", &nes.miscellaneous[0..usize::min(10, nes.miscellaneous.len())]);
+    println!("Misc ROM       : {:?}...", &nes.miscellaneous[0..usize::min(10, nes.miscellaneous.len())]);
 }
 
 
@@ -18,8 +18,10 @@ fn readme_example_works() {
 fn parse_all_valid_roms() {
     for file in Path::new("tests/rom").read_dir().unwrap() {
         let file = file.unwrap();
+        if file.path().extension().unwrap_or_default() != "nes" {
+            continue;
+        }
         let data = std::fs::read(file.path()).unwrap();
-        let nes_file = dotnes::parse(&data).unwrap();
-        println!("{:?}", nes_file.header);
+        assert!(dotnes::parse(&data).is_ok());
     }
 }

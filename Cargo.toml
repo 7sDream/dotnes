@@ -14,5 +14,5 @@ name = "dotnes"
 path = "src/lib.rs"
 
 [dependencies]
-nom = "5.0.1"
-num_enum = "0.4.2"
+num-traits = "0.2.0"
+num-derive = "0.3.0"

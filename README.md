@@ -16,7 +16,7 @@ fn main() {
     println!("NES file Header: {:#?}", nes.header);
     println!("PRG ROM        : {:?}...", &nes.prg_rom[0..usize::min(16, nes.prg_rom.len())]);
     println!("CHR ROM        : {:?}...", &nes.chr_rom[0..usize::min(16, nes.chr_rom.len())]);
-    println!("Misc ROM       : {:?}", &nes.miscellaneous[0..usize::min(10, nes.miscellaneous.len())]);
+    println!("Misc ROM       : {:?}...", &nes.miscellaneous[0..usize::min(10, nes.miscellaneous.len())]);
 }
 ```
 
@@ -43,9 +43,9 @@ NES file Header: NesFileHeader {
     console_type: Nes,
     default_expansion_device: Unspecified,
 }
-PRG ROM        : [0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 255, 255, 255, 255]...
+PRG ROM        : [255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255]...
 CHR ROM        : []...
-Misc ROM       : [255, 255, 184, 224, 36, 225, 180, 224]
+Misc ROM       : []...
 ```
 
 ## LICENSE

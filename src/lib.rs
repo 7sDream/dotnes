@@ -3,8 +3,8 @@
 pub mod header;
 
 use header::{
-    NesFileHeader,
     parser::{parse_header, ParseError},
+    NesFileHeader,
 };
 
 #[derive(Debug)]
@@ -29,7 +29,7 @@ pub fn parse<'a, I: AsRef<[u8]>>(input: &I) -> Result<NesFile, ParseError> {
     let header = parse_header(&input[0..HEADER_SIZE])?;
 
     let prg_rom_start;
-    let trainer= if header.has_trainer {
+    let trainer = if header.has_trainer {
         if input.len() < HEADER_SIZE + TRAINER_SIZE {
             return Err(ParseError::NotEnough);
         }
@@ -52,5 +52,11 @@ pub fn parse<'a, I: AsRef<[u8]>>(input: &I) -> Result<NesFile, ParseError> {
 
     let miscellaneous = &input[chr_rom_end..];
 
-    Ok(NesFile { header,  trainer, prg_rom, chr_rom, miscellaneous})
+    Ok(NesFile {
+        header,
+        trainer,
+        prg_rom,
+        chr_rom,
+        miscellaneous,
+    })
 }

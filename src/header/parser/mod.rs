@@ -27,9 +27,8 @@ mod v2;
 use num_traits::FromPrimitive;
 
 use super::{
-    Mirroring, ConsoleType, VsInfo, ExtendedConsoleType, ExpansionDevice, Timing,
-    VsHardwareType, VsPPUType,
-    NesFileHeader
+    ConsoleType, ExpansionDevice, ExtendedConsoleType, Mirroring, NesFileHeader, Timing,
+    VsHardwareType, VsInfo, VsPPUType,
 };
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -54,7 +53,7 @@ pub fn parse_header(input: &[u8]) -> Result<NesFileHeader, ParseError> {
     let [mapper_low, four_screen, trainer, battery, mirroring] = common::parse_flag6(input[6]);
     let is_four_screen = four_screen == 1;
     let has_trainer = trainer == 1;
-    let has_persistent_memory =  battery == 1;
+    let has_persistent_memory = battery == 1;
     let mirroring = Mirroring::from_u8(mirroring).unwrap();
 
     let [mapper_mid, nes2, console_type] = common::parse_flag7(input[7]);
@@ -136,16 +135,23 @@ pub fn parse_header(input: &[u8]) -> Result<NesFileHeader, ParseError> {
             *extend = ExtendedConsoleType::from_u8(b).unwrap_or(ExtendedConsoleType::Reversed);
         }
 
-        let default_expansion_device = ExpansionDevice::from_u8(default_expansion_device).unwrap_or(ExpansionDevice::Reversed);
+        let default_expansion_device =
+            ExpansionDevice::from_u8(default_expansion_device).unwrap_or(ExpansionDevice::Reversed);
 
         Ok(NesFileHeader {
-            prg_rom_size, chr_rom_size,
-            prg_ram_size, prg_nv_ram_size,
-            chr_ram_size, chr_nv_ram_size,
+            prg_rom_size,
+            chr_rom_size,
+            prg_ram_size,
+            prg_nv_ram_size,
+            chr_ram_size,
+            chr_nv_ram_size,
             miscellaneous_rom_count,
             mapper,
             sub_mapper,
-            is_four_screen, has_trainer, has_persistent_memory, mirroring,
+            is_four_screen,
+            has_trainer,
+            has_persistent_memory,
+            mirroring,
             has_bus_conflicts: false,
             timing,
             is_nes2,
@@ -182,13 +188,19 @@ pub fn parse_header(input: &[u8]) -> Result<NesFileHeader, ParseError> {
         };
 
         Ok(NesFileHeader {
-            prg_rom_size, chr_rom_size,
-            prg_ram_size, prg_nv_ram_size: 0,
-            chr_ram_size: 0, chr_nv_ram_size: 0,
+            prg_rom_size,
+            chr_rom_size,
+            prg_ram_size,
+            prg_nv_ram_size: 0,
+            chr_ram_size: 0,
+            chr_nv_ram_size: 0,
             miscellaneous_rom_count: 0,
             mapper,
             sub_mapper: 0,
-            is_four_screen, has_trainer, has_persistent_memory, mirroring,
+            is_four_screen,
+            has_trainer,
+            has_persistent_memory,
+            mirroring,
             has_bus_conflicts,
             timing,
             is_nes2,

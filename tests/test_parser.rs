@@ -1,35 +1,16 @@
-use std::path::Path;
-
-use dotnes;
-
-#[test]
-fn readme_example_works() {
-    let file = "tests/rom/1.Branch_Basics.nes";
-    let data = std::fs::read(file).unwrap();
-    let nes = dotnes::parse(&data).unwrap();
-    println!("NES file Header: {:#?}", nes.header);
-    println!(
-        "PRG ROM        : {:?}...",
-        &nes.prg_rom[0..usize::min(16, nes.prg_rom.len())]
-    );
-    println!(
-        "CHR ROM        : {:?}...",
-        &nes.chr_rom[0..usize::min(16, nes.chr_rom.len())]
-    );
-    println!(
-        "Misc ROM       : {:?}...",
-        &nes.miscellaneous[0..usize::min(10, nes.miscellaneous.len())]
-    );
-}
+use {dotnes, std::fs, walkdir::WalkDir};
 
 #[test]
 fn parse_all_valid_roms() {
-    for file in Path::new("tests/rom").read_dir().unwrap() {
-        let file = file.unwrap();
-        if file.path().extension().unwrap_or_default() != "nes" {
-            continue;
-        }
-        let data = std::fs::read(file.path()).unwrap();
-        assert!(dotnes::parse(&data).is_ok());
+    for file in WalkDir::new("tests/roms")
+        .into_iter()
+        .filter_map(|entry| entry.ok())
+        .filter(|entry| {
+            entry.file_type().is_file() && entry.path().extension().unwrap_or_default() == "nes"
+        })
+    {
+        let data = fs::read(file.path()).unwrap();
+        let nes_file = dotnes::parse(&data).unwrap();
+        println!("{:#?}", nes_file.header);
     }
 }

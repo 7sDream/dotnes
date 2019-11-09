@@ -1,25 +1,92 @@
 #![deny(warnings)]
 
+//! # DotNes
+//!
+//! Yet another library for parse NES file format.
+//!
+//! # Examples
+//!
+//! Just use the [`parse`](fn.parse.html) function with your bytes, then you are done.
+//!
+//! ```rust
+//! use {std::fs, dotnes};
+//!
+//! let file = "tests/roms/cpu_tests/branch_timing_tests/1.Branch_Basics.nes";
+//! let data = fs::read(file).unwrap();
+//! let nes = dotnes::parse(&data).unwrap();
+//! println!("NES file Header: {:#?}", nes.header);
+//! println!(
+//!     "PRG ROM        : {:?}...",
+//!     &nes.prg_rom[0..usize::min(16, nes.prg_rom.len())]
+//! );
+//! println!(
+//!     "CHR ROM        : {:?}...",
+//!     &nes.chr_rom[0..usize::min(16, nes.chr_rom.len())]
+//! );
+//! println!(
+//!     "Misc ROM       : {:?}...",
+//!     &nes.miscellaneous_roms[0..usize::min(16, nes.miscellaneous_roms.len())]
+//! );
+//! ```
+//!
+//! See document of [`NESFile`](struct.NESFile.html) struct for parse result.
+
 pub mod header;
 
 use header::{
-    parser::{parse_header, ParseError},
-    NesFileHeader,
+    parser::{parse_header, ParseHeaderError},
+    NESFileHeader,
 };
 
+/// Parsed NES format data.
 #[derive(Debug)]
-pub struct NesFile<'a> {
-    pub header: NesFileHeader,
+pub struct NESFile<'a> {
+    /// NES file header info
+    pub header: NESFileHeader,
+    /// Trainer data, will has 512 length when present, 0 if not
     pub trainer: &'a [u8],
+    /// Main PRG-ROM data
     pub prg_rom: &'a [u8],
+    /// Main CHR-ROM data, maybe 0 length
     pub chr_rom: &'a [u8],
-    pub miscellaneous: &'a [u8],
+    /// Miscellaneous ROMs, not parsed as blocks, you need split it by yourself
+    /// according the header info if you want use it
+    pub miscellaneous_roms: &'a [u8],
+}
+
+/// Parse failed reason
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum ParseError {
+    /// Data is too short to be a valid nes file
+    NotEnough,
+    /// Error happened when parse first 16 bytes header
+    InvalidHeader(ParseHeaderError),
+}
+
+impl From<ParseHeaderError> for ParseError {
+    fn from(err: ParseHeaderError) -> Self {
+        ParseError::InvalidHeader(err)
+    }
 }
 
 const HEADER_SIZE: usize = 16;
 const TRAINER_SIZE: usize = 512;
 
-pub fn parse<'a, I: AsRef<[u8]>>(input: &I) -> Result<NesFile, ParseError> {
+/// Parse your NES file content bytes to struct [`NesFile`](struct.NesFile.html).
+///
+/// This function will not copy any bytes, so the result has same lifetime with your bytes.
+///
+/// # Examples
+///
+/// ```rust
+/// let bytes = b"some bytes"; // get your bytes from file or other place
+/// let nes = dotnes::parse(&bytes);
+/// ```
+///
+/// # Error
+///
+/// When `input` is not valid NES format data, return Err<[`ParseError`](enum.ParseError.html)>.
+pub fn parse<'a, I: AsRef<[u8]> + ?Sized>(input: &I) -> Result<NESFile, ParseError> {
     let input = input.as_ref();
 
     if input.len() < HEADER_SIZE {
@@ -50,13 +117,13 @@ pub fn parse<'a, I: AsRef<[u8]>>(input: &I) -> Result<NesFile, ParseError> {
     let prg_rom = &input[prg_rom_start..chr_rom_start];
     let chr_rom = &input[chr_rom_start..chr_rom_end];
 
-    let miscellaneous = &input[chr_rom_end..];
+    let miscellaneous_roms = &input[chr_rom_end..];
 
-    Ok(NesFile {
+    Ok(NESFile {
         header,
         trainer,
         prg_rom,
         chr_rom,
-        miscellaneous,
+        miscellaneous_roms,
     })
 }

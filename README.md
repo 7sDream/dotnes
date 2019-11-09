@@ -7,16 +7,25 @@ Yet another .nes file parser, for my [sau][sau-repo] project.
 Just use the `dotnes::parse()` function with your bytes.
 
 ```rust
-use dotnes;
+use {std::fs, dotnes};
 
 fn main() {
-    let file = "tests/rom/1.Branch_Basics.nes";
-    let data = std::fs::read(file).unwrap();
+    let file = "tests/roms/cpu_tests/branch_timing_tests/1.Branch_Basics.nes";
+    let data = fs::read(file).unwrap();
     let nes = dotnes::parse(&data).unwrap();
     println!("NES file Header: {:#?}", nes.header);
-    println!("PRG ROM        : {:?}...", &nes.prg_rom[0..usize::min(16, nes.prg_rom.len())]);
-    println!("CHR ROM        : {:?}...", &nes.chr_rom[0..usize::min(16, nes.chr_rom.len())]);
-    println!("Misc ROM       : {:?}...", &nes.miscellaneous[0..usize::min(10, nes.miscellaneous.len())]);
+    println!(
+        "PRG ROM        : {:?}...",
+        &nes.prg_rom[0..usize::min(16, nes.prg_rom.len())]
+    );
+    println!(
+        "CHR ROM        : {:?}...",
+        &nes.chr_rom[0..usize::min(16, nes.chr_rom.len())]
+    );
+    println!(
+        "Misc ROM       : {:?}...",
+        &nes.miscellaneous_roms[0..usize::min(16, nes.miscellaneous_roms.len())]
+    );
 }
 ```
 
@@ -50,7 +59,9 @@ Misc ROM       : []...
 
 ## LICENSE
 
-GPLv3, SEE [LICENSE](license-file).
+Except ROM files in `tests/roms` folds, all other code are under GPLv3 License.
+
+SEE [LICENSE][license-file].
 
 [sau-repo]: https://git.7sdre.am/7sDream/sau 
 [license-file]: https://git.7sdre.am/7sDream/dotnes/src/branch/master/LICENS

@@ -1,8 +1,8 @@
-bits_func!(flag8, 4, 4);
-bits_func!(flag9, 4, 4);
-bits_func!(flag10, 4, 4);
-bits_func!(flag11, 4, 4);
-bits_func!(flag12, 6, 2);
-bits_func!(flag13, 4, 4);
-bits_func!(flag14, 6, 2);
-bits_func!(flag15, 2, 6);
+byte_splitter!(flag8, 4, 4);
+byte_splitter!(flag9, 4, 4);
+byte_splitter!(flag10, 4, 4);
+byte_splitter!(flag11, 4, 4);
+byte_splitter!(flag12, 6, 2);
+byte_splitter!(flag13, 4, 4);
+byte_splitter!(flag14, 6, 2);
+byte_splitter!(flag15, 2, 6);

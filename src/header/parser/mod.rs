@@ -1,73 +1,53 @@
-macro_rules! count_exprs {
-    () => (0);
-    ($head:expr $(, $tail:expr)*) => (1 + count_exprs!($($tail),*));
-}
-
-macro_rules! bits_func {
-    ($name:ident, $($x:expr),+) => {
-        pub fn $name(val: u8) -> [u8; count_exprs!($($x),*)] {
-            static END_MASKS : &[u8] = &[0x1, 0x3, 0x7, 0xF, 0x1F, 0x3F, 0x7F, 0xFF];
-            static LENGTHS: &'static [u8; count_exprs!($($x),*)] = &[$($x),*];
-            let mut result: [u8; count_exprs!($($x),*)] = [0; count_exprs!($($x),*)];
-            let current = 0;
-            for i in 0.. count_exprs!($($x),*) {
-                let length = LENGTHS[i];
-                let end = current + length;
-                result[i] = val >> (8 - end) & END_MASKS[length as usize - 1];
-            }
-            result
-        }
-    };
-}
-
+#[macro_use]
+mod byte_splitter_gen;
 mod common;
 mod v1;
 mod v2;
 
-use num_traits::FromPrimitive;
-
-use super::{
-    ConsoleType, ExpansionDevice, ExtendedConsoleType, Mirroring, NesFileHeader, Timing,
-    VsHardwareType, VsInfo, VsPPUType,
+use {
+    super::{
+        ConsoleType, ExpansionDevice, ExtendedConsoleType, Mirroring, NESFileHeader, Timing,
+        VsHardwareType, VsInfo, VsPPUType,
+    },
+    num_traits::FromPrimitive,
 };
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub enum ParseError {
+pub enum ParseHeaderError {
     MagicConstantNotMatch,
     TwoDifferTiming,
-    NotEnough,
 }
 
 const NES_MAGIC_CONSTANT: &[u8; 4] = b"NES\x1A";
 const NES_V2_IDENTIFIER: u8 = 0b10;
 const KB: u32 = 1 << 10;
 
-pub fn parse_header(input: &[u8]) -> Result<NesFileHeader, ParseError> {
+pub fn parse_header(input: &[u8]) -> Result<NESFileHeader, ParseHeaderError> {
     if !input.starts_with(NES_MAGIC_CONSTANT) {
-        return Err(ParseError::MagicConstantNotMatch);
+        return Err(ParseHeaderError::MagicConstantNotMatch);
     }
 
     let prg_rom_size = input[4] as u32;
     let chr_rom_size = input[5] as u32;
 
-    let [mapper_low, four_screen, trainer, battery, mirroring] = common::parse_flag6(input[6]);
+    let [mapper_low, four_screen, trainer, battery, mirroring] = common::flag6(input[6]);
     let is_four_screen = four_screen == 1;
     let has_trainer = trainer == 1;
     let has_persistent_memory = battery == 1;
     let mirroring = Mirroring::from_u8(mirroring).unwrap();
 
-    let [mapper_mid, nes2, console_type] = common::parse_flag7(input[7]);
+    let [mapper_mid, nes2, console_type] = common::flag7(input[7]);
     let is_nes2 = nes2 == NES_V2_IDENTIFIER;
     let mapper = (mapper_mid << 4 | mapper_low) as u16;
     let mut console_type = match console_type {
-        0 => ConsoleType::Nes,
+        0 => ConsoleType::NES,
         1 => ConsoleType::Vs(VsInfo::default()),
-        2 => ConsoleType::Pc10,
+        2 => ConsoleType::PC10,
         3 => {
             if is_nes2 {
                 ConsoleType::Extend(ExtendedConsoleType::Regular)
             } else {
-                // FIXME: Can iNES 1.0 format's console_type bits be 0b11?
+                // FIXME: Can NES 1.0 format's console_type bits be 0b11?
                 ConsoleType::Vs(VsInfo::default())
             }
         }
@@ -77,8 +57,8 @@ pub fn parse_header(input: &[u8]) -> Result<NesFileHeader, ParseError> {
     if is_nes2 {
         let [sub_mapper, mapper_high] = v2::flag8(input[8]);
         let [prg_rom_size_hi, chr_rom_size_hi] = v2::flag9(input[9]);
-        let [prg_ram_shift, prg_nv_ram_shift] = v2::flag10(input[10]);
-        let [chr_ram_shift, chr_nv_ram_shift] = v2::flag11(input[11]);
+        let [prg_ram_shift, prg_nvram_shift] = v2::flag10(input[10]);
+        let [chr_ram_shift, chr_nvram_shift] = v2::flag11(input[11]);
         let [_, timing] = v2::flag12(input[12]);
         let [a, b] = v2::flag13(input[13]);
         let [_, miscellaneous_rom_count] = v2::flag14(input[14]);
@@ -108,8 +88,8 @@ pub fn parse_header(input: &[u8]) -> Result<NesFileHeader, ParseError> {
             0
         };
 
-        let prg_nv_ram_size = if prg_nv_ram_shift != 0 {
-            64u32 << prg_nv_ram_shift as u32
+        let prg_nvram_size = if prg_nvram_shift != 0 {
+            64u32 << prg_nvram_shift as u32
         } else {
             0
         };
@@ -120,8 +100,8 @@ pub fn parse_header(input: &[u8]) -> Result<NesFileHeader, ParseError> {
             0
         };
 
-        let chr_nv_ram_size = if chr_nv_ram_shift != 0 {
-            64u32 << chr_nv_ram_shift as u32
+        let chr_nvram_size = if chr_nvram_shift != 0 {
+            64u32 << chr_nvram_shift as u32
         } else {
             0
         };
@@ -138,13 +118,13 @@ pub fn parse_header(input: &[u8]) -> Result<NesFileHeader, ParseError> {
         let default_expansion_device =
             ExpansionDevice::from_u8(default_expansion_device).unwrap_or(ExpansionDevice::Reversed);
 
-        Ok(NesFileHeader {
+        Ok(NESFileHeader {
             prg_rom_size,
             chr_rom_size,
             prg_ram_size,
-            prg_nv_ram_size,
+            prg_nvram_size,
             chr_ram_size,
-            chr_nv_ram_size,
+            chr_nvram_size,
             miscellaneous_rom_count,
             mapper,
             sub_mapper,
@@ -163,7 +143,7 @@ pub fn parse_header(input: &[u8]) -> Result<NesFileHeader, ParseError> {
         let [_, timing1] = v1::flag9(input[9]);
         let [_, bus_conflicts, no_prg_ram, _, timing2] = v1::flag10(input[10]);
 
-        // nes 1.0 don't use flag 11 - 15
+        // NES 1.0 don't use flag 11 - 15
 
         let prg_rom_size = prg_rom_size * 16 * KB;
         let chr_rom_size = chr_rom_size * 8 * KB;
@@ -177,7 +157,7 @@ pub fn parse_header(input: &[u8]) -> Result<NesFileHeader, ParseError> {
         let prg_ram_size = (prg_ram_size as u32) * 8 * KB;
 
         if timing1 != 0 && timing2 != 0 && timing1 != timing2 {
-            return Err(ParseError::TwoDifferTiming);
+            return Err(ParseHeaderError::TwoDifferTiming);
         }
         let timing = u8::max(timing1, timing2);
         let timing = match timing {
@@ -187,13 +167,13 @@ pub fn parse_header(input: &[u8]) -> Result<NesFileHeader, ParseError> {
             _ => unreachable!(),
         };
 
-        Ok(NesFileHeader {
+        Ok(NESFileHeader {
             prg_rom_size,
             chr_rom_size,
             prg_ram_size,
-            prg_nv_ram_size: 0,
+            prg_nvram_size: 0,
             chr_ram_size: 0,
-            chr_nv_ram_size: 0,
+            chr_nvram_size: 0,
             miscellaneous_rom_count: 0,
             mapper,
             sub_mapper: 0,

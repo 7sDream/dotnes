@@ -1,2 +1,2 @@
-bits_func!(parse_flag6, 4, 1, 1, 1, 1);
-bits_func!(parse_flag7, 4, 2, 2);
+byte_splitter!(flag6, 4, 1, 1, 1, 1);
+byte_splitter!(flag7, 4, 2, 2);

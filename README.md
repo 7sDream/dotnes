@@ -70,4 +70,4 @@ Except ROM files in `tests/roms` folds, all other code are under GPLv3 License.
 SEE [LICENSE][license-file].
 
 [sau-repo]: https://git.7sdre.am/7sDream/sau 
-[license-file]: https://git.7sdre.am/7sDream/dotnes/src/branch/master/LICENS
+[license-file]: https://github.com/7sDream/dotnes/blob/master/LICENSE

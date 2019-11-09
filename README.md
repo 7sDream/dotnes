@@ -1,6 +1,12 @@
-# dotnes
+# DotNes(WIP)
 
-Yet another .nes file parser, for my [sau][sau-repo] project.
+Yet another NES file parser.
+
+**WARNING:** I'm not an expert on NES simulator. This parser implementation is on a very early stage, it may leaking important feature/fields and contains bugs comes from my misunderstanding of wiki articles. I write this parser for my (WIP) [sau][sau-repo] project(which even not publish to GitHub for now), if you REALLY want, please use with caution.
+
+Any bug report is welcome, But temporarily **DO NOT** accept any feature requests.
+
+Not publish to crates.io for the same reason.
 
 ## Usage
 

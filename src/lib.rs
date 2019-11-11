@@ -39,7 +39,7 @@ use header::{
 };
 
 /// Parsed NES format data.
-#[derive(Debug)]
+#[derive(Debug, Clone, Hash)]
 pub struct NESFile<'a> {
     /// NES file header info
     pub header: NESFileHeader,
@@ -55,7 +55,7 @@ pub struct NESFile<'a> {
 }
 
 /// Parse failed reason
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum ParseError {
     /// Data is too short to be a valid nes file
     NotEnough,

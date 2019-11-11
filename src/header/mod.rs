@@ -4,7 +4,7 @@ use num_derive::FromPrimitive;
 
 /// NameTable mirroring type
 #[repr(u8)]
-#[derive(Debug, Copy, Clone, Eq, PartialEq, FromPrimitive)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, FromPrimitive)]
 pub enum Mirroring {
     HorizontalOrMapperControlled = 0,
     Vertical = 1,
@@ -12,7 +12,7 @@ pub enum Mirroring {
 
 /// CPU/PPU Timing
 #[repr(u8)]
-#[derive(Debug, Copy, Clone, Eq, PartialEq, FromPrimitive)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, FromPrimitive)]
 pub enum Timing {
     /// alias of RP2C02, used in North America, Japan, South Korea, Taiwan
     NTSC = 0x0,
@@ -27,7 +27,7 @@ pub enum Timing {
 
 /// Vs. System PPU type
 #[repr(u8)]
-#[derive(Debug, Copy, Clone, Eq, PartialEq, FromPrimitive)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, FromPrimitive)]
 pub enum VsPPUType {
     RP2C03B = 0x0,
     RP2C03G = 0x1,
@@ -47,7 +47,7 @@ pub enum VsPPUType {
 
 /// Vs. System hardware type
 #[repr(u8)]
-#[derive(Debug, Copy, Clone, Eq, PartialEq, FromPrimitive)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, FromPrimitive)]
 pub enum VsHardwareType {
     /// Vs. Unisystem (normal)
     UniSystemNormal = 0x0,
@@ -68,7 +68,7 @@ pub enum VsHardwareType {
 }
 
 /// Vs. System hardware information
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub struct VsInfo {
     /// PPU hardware type
     pub ppu_type: VsPPUType,
@@ -88,7 +88,7 @@ impl Default for VsInfo {
 
 /// Console types which is other normal console type with some extends
 #[repr(u8)]
-#[derive(Debug, Copy, Clone, Eq, PartialEq, FromPrimitive)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, FromPrimitive)]
 pub enum ExtendedConsoleType {
     /// Regular NES/Famicom/Dendy
     Regular = 0x0,
@@ -117,7 +117,7 @@ pub enum ExtendedConsoleType {
 }
 
 /// Normal console types
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum ConsoleType {
     /// Nintendo Entertainment System
     NES,
@@ -131,7 +131,7 @@ pub enum ConsoleType {
 
 /// Devices may required by ROM when playing
 #[repr(u8)]
-#[derive(Debug, Clone, Eq, PartialEq, FromPrimitive)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, FromPrimitive)]
 pub enum ExpansionDevice {
     /// No special needs
     Unspecified = 0x00,
@@ -232,7 +232,7 @@ pub enum ExpansionDevice {
 }
 
 /// NES file format header info
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct NESFileHeader {
     /// PRG ROM size in bytes
     pub prg_rom_size: u32,

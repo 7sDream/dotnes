@@ -6,6 +6,8 @@ on:
     tags: v*
   pull_request:
     branches: master
+  schedule:
+    - cron: '0 7 * * *'
 
 jobs:
   ci:
@@ -23,6 +25,8 @@ jobs:
         toolchain: stable
         override: true
         components: rustfmt, clippy
+    - name: Install cargo-outdated
+      run: cargo install --force --git https://github.com/kbknapp/cargo-outdated
     - name: Check deps version
       run: cargo outdated --depth 1 --exit-code 1 --verbose
     - name: Caching

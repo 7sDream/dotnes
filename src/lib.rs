@@ -1,7 +1,6 @@
+#![warn(clippy::all, clippy::pedantic, clippy::nursery)]
 #![deny(warnings)]
 
-//! # DotNes
-//!
 //! Yet another library for parse NES file format.
 //!
 //! # Examples
@@ -35,14 +34,14 @@ pub mod header;
 
 use header::{
     parser::{parse_header, ParseHeaderError},
-    NESFileHeader,
+    Header,
 };
 
 /// Parsed NES format data.
 #[derive(Debug, Clone, Hash)]
 pub struct NESFile<'a> {
     /// NES file header info
-    pub header: NESFileHeader,
+    pub header: Header,
     /// Trainer data, will has 512 length when present, 0 if not
     pub trainer: &'a [u8],
     /// Main PRG-ROM data
@@ -65,7 +64,7 @@ pub enum ParseError {
 
 impl From<ParseHeaderError> for ParseError {
     fn from(err: ParseHeaderError) -> Self {
-        ParseError::InvalidHeader(err)
+        Self::InvalidHeader(err)
     }
 }
 
@@ -86,7 +85,7 @@ const TRAINER_SIZE: usize = 512;
 /// # Error
 ///
 /// When `input` is not valid NES format data, return Err<[`ParseError`](enum.ParseError.html)>.
-pub fn parse<'a, I: AsRef<[u8]> + ?Sized>(input: &I) -> Result<NESFile, ParseError> {
+pub fn parse<I: AsRef<[u8]> + ?Sized>(input: &I) -> Result<NESFile, ParseError> {
     let input = input.as_ref();
 
     if input.len() < HEADER_SIZE {
@@ -119,11 +118,5 @@ pub fn parse<'a, I: AsRef<[u8]> + ?Sized>(input: &I) -> Result<NESFile, ParseErr
 
     let miscellaneous_roms = &input[chr_rom_end..];
 
-    Ok(NESFile {
-        header,
-        trainer,
-        prg_rom,
-        chr_rom,
-        miscellaneous_roms,
-    })
+    Ok(NESFile { header, trainer, prg_rom, chr_rom, miscellaneous_roms })
 }

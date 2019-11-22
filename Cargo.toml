@@ -7,6 +7,8 @@ description = "Yet another NES file parser"
 repository = "https://github.com/7sDream/dotnes"
 readme = "README.md"
 license-file = "LICENSE"
+keywords = ["game", "nes", "file format", "parser"]
+categories = ["Emulators", "Parser implementations"]
 publish = false
 
 [lib]
@@ -14,7 +16,7 @@ name = "dotnes"
 path = "src/lib.rs"
 
 [dependencies]
-num-traits = "0.2.0"
+num-traits = "0.2.9"
 num-derive = "0.3.0"
 
 [dev-dependencies]

@@ -2,7 +2,7 @@ pub(super) mod parser;
 
 use num_derive::FromPrimitive;
 
-/// NameTable mirroring type
+/// Name Table mirroring type
 #[repr(u8)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, FromPrimitive)]
 pub enum Mirroring {
@@ -79,10 +79,7 @@ pub struct VsInfo {
 
 impl Default for VsInfo {
     fn default() -> Self {
-        Self {
-            ppu_type: VsPPUType::RP2C03B,
-            hardware_type: VsHardwareType::UniSystemNormal,
-        }
+        Self { ppu_type: VsPPUType::RP2C03B, hardware_type: VsHardwareType::UniSystemNormal }
     }
 }
 
@@ -233,7 +230,7 @@ pub enum ExpansionDevice {
 
 /// NES file format header info
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
-pub struct NESFileHeader {
+pub struct Header {
     /// PRG ROM size in bytes
     pub prg_rom_size: u32,
     /// CHR ROM size in bytes

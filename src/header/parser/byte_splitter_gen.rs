@@ -11,7 +11,7 @@ macro_rules! byte_splitter {
         #[deny(const_err)]
         const _: u8 = ($($x +)* 0 == 8) as u8 - 1;
 
-        pub fn $name(val: u8) -> [u8; $length] {
+        pub const fn $name(val: u8) -> [u8; $length] {
             let mut result = [0; $length];
             let current = 0;
             let i = 0;
@@ -30,8 +30,9 @@ macro_rules! byte_splitter {
 #[cfg(test)]
 mod test {
     #[test]
+    #[allow(clippy::inconsistent_digit_grouping)] // because the byte is split to groups by spec
     fn test_byte_parser() {
         byte_splitter!(test_bit_splitter_fn, 1, 2, 3, 2);
-        assert_eq!(test_bit_splitter_fn(0b10110110), [0b1, 0b01, 0b101, 0b10]);
+        assert_eq!(test_bit_splitter_fn(0b_1_01_101_10), [0b1, 0b01, 0b101, 0b10]);
     }
 }

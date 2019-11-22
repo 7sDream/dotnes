@@ -19,9 +19,9 @@ jobs:
     - name: Caching
       uses: actions/cache@v1
       with:
-        - path: target
-        - key: ${{ runner.OS }}-build-${{ hashFiles('Cargo.lock') }}
-        - restore-keys: |
+        path: target
+        key: ${{ runner.OS }}-build-${{ hashFiles('Cargo.lock') }}
+        restore-keys: |
           ${{ runner.OS }}-build-
           ${{ runner.OS }}-
     - name: Build

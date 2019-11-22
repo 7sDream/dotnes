@@ -8,7 +8,7 @@ repository = "https://github.com/7sDream/dotnes"
 readme = "README.md"
 license-file = "LICENSE"
 keywords = ["game", "nes", "file format", "parser"]
-categories = ["Emulators", "Parser implementations"]
+categories = ["emulators", "parser-implementations"]
 publish = false
 
 [lib]

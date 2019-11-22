@@ -16,6 +16,13 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v1
+    - name: Install Rust toolchains
+      if: runner.OS != "Linux"
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+        components: rustfmt, clippy
     - name: Caching
       uses: actions/cache@v1
       with:

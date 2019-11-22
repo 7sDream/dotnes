@@ -14,7 +14,16 @@ jobs:
         platform: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.platform }}
     steps:
-    - uses: actions/checkout@v1
+    - name: Checkout
+      uses: actions/checkout@v1
+    - name: Caching
+      uses: actions/cache@v1
+      with:
+        - path: target
+        - key: ${{ runner.OS }}-build-${{ hashFiles('Cargo.lock') }}
+        - restore-keys: |
+          ${{ runner.OS }}-build-
+          ${{ runner.OS }}-
     - name: Build
       run: cargo build --verbose
     - name: Code Format

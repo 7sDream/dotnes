@@ -1,0 +1,22 @@
+name: Rust
+
+on: 
+  push:
+    branches: master
+    tags: v*
+  pull_request:
+    branches: master
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Build
+      run: cargo build --verbose
+    - name: Code Format
+      run: cargo fmt --all -- -check
+    - name: Clippy Check
+      run: cargo clippy --all-targets --all-features -- -D warnings
+    - name: Run tests
+      run: cargo test --verbose

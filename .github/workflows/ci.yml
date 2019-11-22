@@ -23,6 +23,8 @@ jobs:
         toolchain: stable
         override: true
         components: rustfmt, clippy
+    - name: Check deps version
+      run: cargo outdated --depth 1 --exit-code 1 --verbose
     - name: Caching
       uses: actions/cache@v1
       with:

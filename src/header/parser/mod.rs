@@ -6,7 +6,7 @@ mod v2;
 
 use {
     super::{
-        ConsoleType, ExpansionDevice, ExtendedConsoleType, Mirroring, Header, Timing,
+        ConsoleType, ExpansionDevice, ExtendedConsoleType, Header, Mirroring, Timing,
         VsHardwareType, VsInfo, VsPPUType,
     },
     num_traits::FromPrimitive,
@@ -86,11 +86,13 @@ pub fn parse_header(input: &[u8]) -> Result<Header, ParseHeaderError> {
 
         let prg_ram_size = if prg_ram_shift == 0 { 0 } else { 64_u32 << u32::from(prg_ram_shift) };
 
-        let prg_nvram_size = if prg_nvram_shift == 0 { 0 } else { 64_u32 << u32::from(prg_nvram_shift) };
+        let prg_nvram_size =
+            if prg_nvram_shift == 0 { 0 } else { 64_u32 << u32::from(prg_nvram_shift) };
 
         let chr_ram_size = if chr_ram_shift == 0 { 0 } else { 64_u32 << u32::from(chr_ram_shift) };
 
-        let chr_nvram_size = if chr_nvram_shift == 0 { 0 } else { 64_u32 << u32::from(chr_nvram_shift) };
+        let chr_nvram_size =
+            if chr_nvram_shift == 0 { 0 } else { 64_u32 << u32::from(chr_nvram_shift) };
 
         let timing = Timing::from_u8(timing).unwrap();
 

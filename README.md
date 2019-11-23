@@ -1,5 +1,7 @@
 # DotNes(WIP)
 
+![CI-badge][CI-badge]
+
 Yet another NES file parser.
 
 **WARNING:** I'm not an expert on NES simulator. This parser implementation is on a very early stage, it may leaking important feature/fields and contains bugs comes from my misunderstanding of wiki articles. I write this parser for my (WIP) [sau][sau-repo] project(which even not publish to GitHub for now), if you REALLY want, please use with caution.
@@ -69,5 +71,6 @@ Except ROM files in `tests/roms` folds, all other code are under GPLv3 License.
 
 SEE [LICENSE][license-file].
 
+[CI-badge]: https://github.com/7sDream/dotnes/workflows/CI/badge.svg
 [sau-repo]: https://git.7sdre.am/7sDream/sau 
 [license-file]: https://github.com/7sDream/dotnes/blob/master/LICENSE

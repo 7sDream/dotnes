@@ -78,6 +78,7 @@ pub struct VsInfo {
 }
 
 impl Default for VsInfo {
+    #[must_use]
     fn default() -> Self {
         Self { ppu_type: VsPPUType::RP2C03B, hardware_type: VsHardwareType::UniSystemNormal }
     }

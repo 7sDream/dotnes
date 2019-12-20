@@ -63,6 +63,7 @@ pub enum ParseError {
 }
 
 impl From<ParseHeaderError> for ParseError {
+    #[must_use]
     fn from(err: ParseHeaderError) -> Self {
         Self::InvalidHeader(err)
     }

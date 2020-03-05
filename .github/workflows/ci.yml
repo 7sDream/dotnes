@@ -26,7 +26,7 @@ jobs:
         override: true
         components: rustfmt, clippy
     - name: Install cargo-outdated
-      run: cargo install --force --git https://github.com/kbknapp/cargo-outdated
+      run: cargo install --force cargo-outdated --locked
     - name: Check deps version
       run: cargo outdated --depth 1 --exit-code 1 --verbose
     - name: Caching

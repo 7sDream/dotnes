@@ -9,7 +9,6 @@ readme = "README.md"
 license-file = "LICENSE"
 keywords = ["game", "nes", "file format", "parser"]
 categories = ["emulators", "parser-implementations"]
-publish = false
 
 [lib]
 name = "dotnes"

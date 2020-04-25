@@ -19,6 +19,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
     - name: Install Rust toolchains
+      id: toolchain
       uses: actions-rs/toolchain@v1
       with:
         toolchain: stable
@@ -57,7 +58,7 @@ jobs:
       uses: actions/cache@v1
       with:
         path: target
-        key: ${{ runner.OS }}-build-${{ hashFiles('Cargo.lock') }}-${{ rustc_hash }}
+        key: ${{ runner.OS }}-build-${{ hashFiles('Cargo.lock') }}-${{ steps.toolchain.outputs.rustc_hash }}
         restore-keys: |
           ${{ runner.OS }}-build-${{ hashFiles('Cargo.lock') }}-
           ${{ runner.OS }}-build-

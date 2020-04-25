@@ -16,8 +16,8 @@ name = "dotnes"
 path = "src/lib.rs"
 
 [dependencies]
-num-traits = "0.2.11"
-num-derive = "0.3.0"
+num-traits = "0.2"
+num-derive = "0.3"
 
 [dev-dependencies]
-walkdir = "2.3.1"
+walkdir = "2.3"

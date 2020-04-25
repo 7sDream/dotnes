@@ -230,6 +230,7 @@ pub enum ExpansionDevice {
 }
 
 /// NES file format header info
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct Header {
     /// PRG ROM size in bytes

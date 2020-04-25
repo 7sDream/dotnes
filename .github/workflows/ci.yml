@@ -25,25 +25,6 @@ jobs:
         toolchain: stable
         override: true
         components: rustfmt, clippy
-    - name: Install cargo-outdated
-      uses: actions-rs/install@v0.1
-      with:
-        crate: cargo-outdated
-    - name: Check deps crates version
-      uses: actions-rs/cargo@v1
-      with:
-        command: outdated
-        args: --depth 1 --exit-code 1 --verbose
-    - name: Check code style
-      uses: actions-rs/cargo@v1
-      with:
-        command: fmt
-        args: --all -- --check
-    - name: Lint code by clippy
-      uses: actions-rs/clippy-check@v1
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        args: --all-targets --all-features -- -D warnings
     - name: Cache cargo registry
       uses: actions/cache@v1
       with:
@@ -63,6 +44,26 @@ jobs:
           ${{ runner.OS }}-build-${{ hashFiles('Cargo.lock') }}-
           ${{ runner.OS }}-build-
           ${{ runner.OS }}-
+    - name: Install cargo-outdated
+      uses: actions-rs/install@v0.1
+      with:
+        crate: cargo-outdated
+        use-tool-cache: true
+    - name: Check deps crates version
+      uses: actions-rs/cargo@v1
+      with:
+        command: outdated
+        args: --depth 1 --exit-code 1 --verbose
+    - name: Check code style
+      uses: actions-rs/cargo@v1
+      with:
+        command: fmt
+        args: --all -- --check
+    - name: Lint code by clippy
+      uses: actions-rs/clippy-check@v1
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        args: --all-targets --all-features -- -D warnings
     - name: Build
       run: cargo build --verbose
     - name: Run tests

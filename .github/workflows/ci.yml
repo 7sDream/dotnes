@@ -19,29 +19,50 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
     - name: Install Rust toolchains
-      if: runner.OS != 'Linux'
       uses: actions-rs/toolchain@v1
       with:
         toolchain: stable
         override: true
         components: rustfmt, clippy
     - name: Install cargo-outdated
-      run: cargo install --force cargo-outdated --locked
-    - name: Check deps version
-      run: cargo outdated --depth 1 --exit-code 1 --verbose
-    - name: Caching
+      uses: actions-rs/install@v0.1
+      with:
+        crate: cargo-outdated
+    - name: Check deps crates version
+      uses: actions-rs/cargo@v1
+      with:
+        command: outdated
+        args: --depth 1 --exit-code 1 --verbose
+    - name: Check code style
+      uses: actions-rs/cargo@v1
+      with:
+        command: fmt
+        args: --all -- --check
+    - name: Lint code by clippy
+      uses: actions-rs/cargo@v1
+      with:
+        command: clippy
+        args: --all-targets --all-features -- -D warnings
+    - name: Cache cargo registry
+      uses: actions/cache@v1
+      with:
+        path: ~/.cargo/registry
+        key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+    - name: Cache cargo index
+      uses: actions/cache@v1
+      with:
+        path: ~/.cargo/git
+        key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+    - name: Cache build result
       uses: actions/cache@v1
       with:
         path: target
-        key: ${{ runner.OS }}-build-${{ hashFiles('Cargo.lock') }}
+        key: ${{ runner.OS }}-build-${{ hashFiles('Cargo.lock') }}-${{ rustc_hash }}
         restore-keys: |
+          ${{ runner.OS }}-build-${{ hashFiles('Cargo.lock') }}-
           ${{ runner.OS }}-build-
           ${{ runner.OS }}-
     - name: Build
       run: cargo build --verbose
-    - name: Code Format
-      run: cargo fmt --all -- --check
-    - name: Clippy Check
-      run: cargo clippy --all-targets --all-features -- -D warnings
     - name: Run tests
       run: cargo test --verbose

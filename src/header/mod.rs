@@ -1,6 +1,10 @@
+//! Struct and Enums which used to represent information stored in NES file's header segment
+
 pub(super) mod parser;
 
 use num_derive::FromPrimitive;
+
+pub use parser::ParseHeaderError;
 
 /// Name Table mirroring type
 #[repr(u8)]

@@ -33,12 +33,14 @@
 
 pub mod header;
 
+pub use header::ParseHeaderError;
+
 use header::{
-    parser::{parse_header, ParseHeaderError},
+    parser::parse_header,
     Header,
 };
 
-/// Parsed NES format data.
+/// NES file parse result
 #[derive(Debug, Clone, Hash)]
 pub struct NESFile<'a> {
     /// NES file header info
@@ -73,7 +75,7 @@ impl From<ParseHeaderError> for ParseError {
 const HEADER_SIZE: usize = 16;
 const TRAINER_SIZE: usize = 512;
 
-/// Parse your NES file content bytes to struct [`NesFile`](struct.NesFile.html).
+/// Parse your NES file content bytes to struct [`NESFile`](struct.NESFile.html).
 ///
 /// This function will not copy any bytes, so the result has same lifetime with your bytes.
 ///

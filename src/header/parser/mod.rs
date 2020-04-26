@@ -12,6 +12,7 @@ use {
     num_traits::FromPrimitive,
 };
 
+/// Parse head failed reason
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum ParseHeaderError {
     MagicConstantNotMatch,

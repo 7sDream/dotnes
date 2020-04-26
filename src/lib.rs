@@ -1,4 +1,5 @@
-#![warn(clippy::all, clippy::pedantic, clippy::nursery)]
+#![deny(clippy::all, clippy::pedantic, clippy::nursery)]
+#![deny(missing_debug_implementations, rust_2018_idioms)]
 #![deny(warnings)]
 
 //! Yet another library for parse NES file format.
@@ -86,7 +87,7 @@ const TRAINER_SIZE: usize = 512;
 /// # Errors
 ///
 /// When `input` is not valid NES format data, return Err<[`ParseError`](enum.ParseError.html)>.
-pub fn parse<I: AsRef<[u8]> + ?Sized>(input: &I) -> Result<NESFile, ParseError> {
+pub fn parse<I: AsRef<[u8]> + ?Sized>(input: &I) -> Result<NESFile<'_>, ParseError> {
     let input = input.as_ref();
 
     if input.len() < HEADER_SIZE {

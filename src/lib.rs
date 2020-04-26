@@ -1,5 +1,5 @@
 #![deny(clippy::all, clippy::pedantic, clippy::nursery)]
-#![deny(missing_debug_implementations, rust_2018_idioms)]
+#![deny(missing_debug_implementations, missing_docs, rust_2018_idioms)]
 #![deny(warnings)]
 
 //! Yet another library for parse NES file format.

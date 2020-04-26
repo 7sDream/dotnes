@@ -7,6 +7,7 @@ use num_derive::FromPrimitive;
 pub use parser::ParseHeaderError;
 
 /// Name Table mirroring type
+#[allow(missing_docs)] // because the variant name is clear enough
 #[repr(u8)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, FromPrimitive)]
 pub enum Mirroring {
@@ -30,6 +31,7 @@ pub enum Timing {
 }
 
 /// Vs. System PPU type
+#[allow(missing_docs)] // because the variant name is clear enough
 #[repr(u8)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, FromPrimitive)]
 pub enum VsPPUType {

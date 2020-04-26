@@ -15,19 +15,21 @@ use {
 /// Parse head failed reason
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum ParseHeaderError {
-    MagicConstantNotMatch,
+    /// Bytes doesn't starts with NES file's magic bytes
+    MagicBytesNotMatch,
+    /// Timing info stored in flag9 and flag10 is different
     TwoDifferTiming,
 }
 
-const NES_MAGIC_CONSTANT: &[u8; 4] = b"NES\x1A";
+const NES_MAGIC_BYTES: &[u8; 4] = b"NES\x1A";
 const NES_V2_IDENTIFIER: u8 = 0b10;
 const KB: u32 = 1 << 10;
 
 #[allow(clippy::similar_names)] // for `rom` and `ram` is similar
 #[allow(clippy::too_many_lines)] // TODO: reduce code lines
 pub fn parse_header(input: &[u8]) -> Result<Header, ParseHeaderError> {
-    if !input.starts_with(NES_MAGIC_CONSTANT) {
-        return Err(ParseHeaderError::MagicConstantNotMatch);
+    if !input.starts_with(NES_MAGIC_BYTES) {
+        return Err(ParseHeaderError::MagicBytesNotMatch);
     }
 
     let prg_rom_size = u32::from(input[4]);

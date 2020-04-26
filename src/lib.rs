@@ -86,7 +86,7 @@ const TRAINER_SIZE: usize = 512;
 ///
 /// # Errors
 ///
-/// When `input` is not valid NES format data, return Err<[`ParseError`](enum.ParseError.html)>.
+/// When `input` is not valid NES format data, return Err([`ParseError`](enum.ParseError.html)).
 pub fn parse<I: AsRef<[u8]> + ?Sized>(input: &I) -> Result<NESFile<'_>, ParseError> {
     let input = input.as_ref();
 

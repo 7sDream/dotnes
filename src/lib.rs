@@ -35,10 +35,7 @@ pub mod header;
 
 pub use header::ParseHeaderError;
 
-use header::{
-    parser::parse_header,
-    Header,
-};
+use header::{parser::parse_header, Header};
 
 /// NES file parse result
 #[derive(Debug, Clone, Hash)]

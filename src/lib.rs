@@ -42,14 +42,14 @@ use header::{parser::parse_header, Header};
 pub struct NESFile<'a> {
     /// NES file header info
     pub header: Header,
-    /// Trainer data, will has 512 length when present, 0 if not
+    /// Trainer data, will has 512 byte length when present, 0 if not
     pub trainer: &'a [u8],
     /// Main PRG-ROM data
     pub prg_rom: &'a [u8],
-    /// Main CHR-ROM data, maybe 0 length
+    /// Main CHR-ROM data
     pub chr_rom: &'a [u8],
     /// Miscellaneous ROMs, not parsed as blocks, you need split it by yourself
-    /// according the header info if you want use it
+    /// according the header info if you want to use it
     pub miscellaneous_roms: &'a [u8],
 }
 

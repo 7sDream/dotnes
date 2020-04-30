@@ -1,4 +1,4 @@
-//! Struct and Enums which used to represent information stored in NES file's header segment
+//! Struct and Enums to represent information stored in NES file's header segment
 
 pub(super) mod parser;
 
@@ -69,7 +69,7 @@ pub enum VsHardwareType {
     DualSystemNormal = 0x5,
     /// Vs. Dual System (Raid on Bungeling Bay protection)
     DualSystemRaidOnBungelingBayProtection = 0x6,
-    /// Reversed
+    /// Reserved
     Reserved = 0xFF,
 }
 
@@ -117,7 +117,7 @@ pub enum ExtendedConsoleType {
     /// V.R. Technology VT369
     VT369 = 0xA,
     /// Reserved
-    Reversed = 0xFF,
+    Reserved = 0xFF,
 }
 
 /// Normal console types
@@ -231,8 +231,8 @@ pub enum ExpansionDevice {
     UForce = 0x2D,
     /// R.O.B. Stack-Up
     ROBStackUp = 0x2E,
-    /// Reversed
-    Reversed = 0xFF,
+    /// Reserved
+    Reserved = 0xFF,
 }
 
 /// NES file format header info

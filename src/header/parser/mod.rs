@@ -103,11 +103,11 @@ pub fn parse_header(input: &[u8]) -> Result<Header, ParseHeaderError> {
             info.hardware_type = VsHardwareType::from_u8(a).unwrap_or(VsHardwareType::Reserved);
             info.ppu_type = VsPPUType::from_u8(b).unwrap_or(VsPPUType::Reserved);
         } else if let ConsoleType::Extend(ref mut extend) = console_type {
-            *extend = ExtendedConsoleType::from_u8(b).unwrap_or(ExtendedConsoleType::Reversed);
+            *extend = ExtendedConsoleType::from_u8(b).unwrap_or(ExtendedConsoleType::Reserved);
         }
 
         let default_expansion_device =
-            ExpansionDevice::from_u8(default_expansion_device).unwrap_or(ExpansionDevice::Reversed);
+            ExpansionDevice::from_u8(default_expansion_device).unwrap_or(ExpansionDevice::Reserved);
 
         Ok(Header {
             prg_rom_size,

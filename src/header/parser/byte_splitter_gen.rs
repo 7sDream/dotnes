@@ -1,15 +1,19 @@
-macro_rules! count_exprs {
-    () => { 0 };
-    ($_:expr $(, $tail:expr)*) => { (1 + count_exprs!($($tail),*)) }
+macro_rules! count {
+    ($($x:expr),*) => {
+        <[()]>::len(&[$(count!(replace $x)),*])
+    };
+    (replace $_x:expr) => {
+        ()
+    }
 }
 
 macro_rules! byte_splitter {
-    ($name:ident $(,$x:expr)+) => {
-        byte_splitter!(count_exprs!($($x),+), $name, $($x),+);
+    ($name:ident, $($x:expr),+) => {
+        byte_splitter!(count!($($x),+), $name, $($x),+);
     };
     ($length:expr, $name:ident, $($x:expr),+) => {
         #[deny(const_err)]
-        const _: u8 = ($($x +)* 0 == 8) as u8 - 1;
+        const _: u8 = ($($x + )+ 0 == 8) as u8 - 1;
 
         pub const fn $name(val: u8) -> [u8; $length] {
             let mut result = [0; $length];

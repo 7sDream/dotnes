@@ -104,7 +104,7 @@ pub fn parse<I: AsRef<[u8]> + ?Sized>(input: &I) -> Result<NESFile<'_>, ParseErr
         &input[HEADER_SIZE..HEADER_SIZE + TRAINER_SIZE]
     } else {
         prg_rom_start = HEADER_SIZE;
-        &input[HEADER_SIZE..HEADER_SIZE]
+        &[]
     };
 
     let chr_rom_start = prg_rom_start + header.prg_rom_size as usize;
